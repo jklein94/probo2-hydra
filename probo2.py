@@ -126,6 +126,11 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
         is_output_valid = utils.validate_solver_output_accaptance_task(cfg,result)
         result.update({'solver_output_valid': is_output_valid})
 
+        # Update the runtimes of the solver to the timeout value if the output is invalid
+        if not is_output_valid:
+            result["user_sys_time"] = cfg.timeout
+            result["perfcounter_time"] = cfg.timeout
+
         # Append additional info like solver, benchmark and general infos
         prefixed_solver_info = utils.generate_solver_info(cfg)
 
@@ -218,6 +223,11 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
         # Validate solver output
         is_output_valid = utils.validate_solver_output_enumeration_task(cfg,result)
         result.update({'solver_output_valid': is_output_valid})
+
+        # Update the runtimes of the solver to the timeout value if the output is invalid
+        if not is_output_valid:
+            result["user_sys_time"] = cfg.timeout
+            result["perfcounter_time"] = cfg.timeout
 
         # Append additional info like solver, benchmark and general infos
         prefixed_solver_info = utils.generate_solver_info(cfg)
