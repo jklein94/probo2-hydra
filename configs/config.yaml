@@ -1,0 +1,47 @@
+# config.yaml
+defaults:
+  - _self_
+  - callbacks:
+    - general/aggregate_solver_results
+  - solver: ???   # Default solver
+  - benchmark: ???  # Default benchmark
+  - config_validation: default # default options for the validation of the config
+  - callbacks/notifications: pushover_api_credentials  # Default credentials for the pushover API
+  - check_solver_output: True # Check if the solver output follows the expected format of the corresponding interface and task
+
+ # - override hydra/launcher: joblib
+
+# +++++ Definition of the default paths for experiments +++++
+
+root_dir: results/${name}_${now:%Y-%m-%d_%H-%M-%S}
+result_index_file:  ${root_dir}/result_file_index.txt
+combined_results_file:  ${root_dir}/combined_results.csv
+
+evaluation_output_dir: ${root_dir}/evaluation_output
+evaluation_result_index_file: ${evaluation_output_dir}/evaluation_result_file_index.txt
+evaluation_combined_results_file: ${evaluation_output_dir}/evaluation_combined_results.csv
+
+
+result_validation_output_dir: ${root_dir}/result_validation_output
+result_validation_combined_results_file: ${result_validation_output_dir}/result_validation_combined_results.csv
+
+task: ???     # Default task
+timeout: 600
+runs: 1
+name: MyExperiment
+
+hydra:
+  sweep:
+    dir: ${root_dir}  # Top-level directory for all sweep outputs
+    subdir: ${solver.name}
+  output_subdir: ${benchmark.name}/${runs}/${task}  # Nested directories for each parameter combination
+
+
+  # sweeper:
+  #   params:
+  #     solver: ICCMA19/pyglaf, ICCMA19/mu_toksia
+  #     benchmark: small_i23
+  #     task: SE-PR, SE-CO
+  # launcher:
+  #   n_jobs: 4
+  #   #backend: "threading"  # Can be overridden to "loky" or "multiprocessing"

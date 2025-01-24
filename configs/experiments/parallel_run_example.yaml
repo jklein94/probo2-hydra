@@ -1,0 +1,21 @@
+# @package _global_
+name: Parallel-Run-Example
+
+# Override the default launcher with joblib to run the experiments in parallel
+defaults:
+  - override /hydra/launcher: joblib
+
+hydra:
+  sweeper:
+    params:
+      benchmark: MyBenchmark_1, MyBenchmark_2
+      solver: MySolver_1, MySolver_2
+      task: MyTask_1, MyTask_2
+  launcher:
+    n_jobs: 4 # Number of parallel jobs to run
+
+
+
+
+
+

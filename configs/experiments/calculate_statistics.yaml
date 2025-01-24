@@ -1,0 +1,22 @@
+# @package _global_
+
+name: Calculate-Statistics
+# Define a custom evalutation pipeline to calculate some common statistics
+# Note that the order of the callbacks is important
+# The last callback in the list is called first, and should always be the general/aggregate_solver_results callback
+defaults:
+  - override /callbacks:
+     - stats/coverage
+     - stats/mean_runtime
+     - general/aggregate_solver_results
+
+
+hydra:
+  sweeper:
+    params:
+      benchmark: MyBenchmark
+      solver: MySolver_1, MySolver_2
+      task: MyTask_1, MyTask_2
+
+
+

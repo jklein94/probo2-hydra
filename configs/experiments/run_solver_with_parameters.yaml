@@ -1,0 +1,22 @@
+# @package _global_
+
+timeout: 2
+name: Run-Single-Solver-with-Params
+
+# Define the solver paramters you want to sweep, e.g. paramA and paramB
+# The paramter named must mach the name of the parameter in the solver YAML file
+paramA: ???
+paramB: ???
+
+hydra:
+  sweeper:
+    params:
+      benchmark: MyBenchmark_1, MyBenchmark_2
+      task: MyTask_1, MyTask_2
+      solver: MySolver_1, MySolver_2
+      paramA: A1,A2,A3 # Define the values for paramA to sweep
+      paramB: B1,B2 # Define the values for paramB to sweep
+
+
+
+

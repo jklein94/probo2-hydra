@@ -1,0 +1,8 @@
+name: MySolver # Name of the solver must be unique!
+version: ICCM23
+path: /full/path/to/MySolver # Path to the solver executable or script (bash or python)
+format: tgf # Supported formats: tgf, apx, i23
+interface: legacy # Supported interfaces: legacy (ICCMA15-21 interface), i23  (ICCMA23 interface)
+argument: [paramA, paramB] # Optional: List of arguments for the solver
+
+

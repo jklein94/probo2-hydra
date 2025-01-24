@@ -1,0 +1,12 @@
+# @package _global_
+
+# Example for a custom evaluation callback
+hydra:
+  callbacks:
+    aggregate_evaluation_results:
+      _target_: src.callbacks.statistics_callbacks.AggreateEvaluationResults
+    mean_runtime:
+      _target_: src.callbacks.statistics_callbacks.MeanRuntime
+    coverage:
+      _target_: src.callbacks.statistics_callbacks.Coverage
+

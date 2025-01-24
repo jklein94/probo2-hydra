@@ -1,0 +1,6 @@
+# @package _global_
+hydra:
+  callbacks:
+    aggregate_solver_results:
+      _target_: src.callbacks.general_callbacks.AggregateResults
+
