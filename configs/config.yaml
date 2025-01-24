@@ -7,7 +7,6 @@ defaults:
   - benchmark: ???  # Default benchmark
   - config_validation: default # default options for the validation of the config
   - callbacks/notifications: pushover_api_credentials  # Default credentials for the pushover API
-  - check_solver_output: True # Check if the solver output follows the expected format of the corresponding interface and task
 
  # - override hydra/launcher: joblib
 
@@ -25,10 +24,14 @@ evaluation_combined_results_file: ${evaluation_output_dir}/evaluation_combined_r
 result_validation_output_dir: ${root_dir}/result_validation_output
 result_validation_combined_results_file: ${result_validation_output_dir}/result_validation_combined_results.csv
 
+
 task: ???     # Default task
 timeout: 600
 runs: 1
 name: MyExperiment
+check_solver_output: True # Check if the solver output follows the expected format of the corresponding interface and task
+
+
 
 hydra:
   sweep:

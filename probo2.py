@@ -24,33 +24,39 @@ def run_solver_dynamic_enumeration(cfg:DictConfig) -> None:
 
 
 def run_solver_static_accaptance(cfg:DictConfig) -> None:
+    """
+    Runs a solver with static acceptance criteria based on the provided configuration.
+
+    Args:
+        cfg (DictConfig): Configuration object containing solver, benchmark, and other settings.
+
+    Returns:
+        None
+
+    The function performs the following steps:
+    1. Retrieves Hydra configuration and sets up output directories.
+    2. Dumps the current configuration to a file.
+    3. Determines the matching format between solver and benchmark.
+    4. Retrieves instances and query argument instances based on the benchmark path and formats.
+    5. Generates and saves a mapping from instance names to query arguments.
+    6. Loads the instance-to-query-argument mapping from a file.
+    7. Constructs the solver interface command based on the configuration.
+    8. Adjusts the solver command to include the instance file and query arguments.
+    9. Runs the solver for each instance with a timeout and captures the output.
+    10. Validates the solver output and appends additional information.
+    11. Writes the results to a CSV file.
+
+    Note:
+        The function uses various utility functions from the `utils` module to perform tasks such as dumping configurations,
+        retrieving files, running the solver, validating output, and writing results.
+    """
 
     hydra_config = HydraConfig.get()
     run_dir = hydra_config.runtime.output_dir
     output_root_dir = os.path.join(run_dir, hydra_config.output_subdir)
 
-    print(cfg.root_dir)
 
-    # Create directories to dump configs
-    solver_config_dump = os.path.join(cfg.root_dir, "solver_config")
-    os.makedirs(solver_config_dump, exist_ok=True)
-
-    solver_config_file_path = os.path.join(solver_config_dump,f'{cfg.solver.name}_config.yaml')
-    #check if the solver config file exists
-    if not os.path.exists(solver_config_file_path):
-        OmegaConf.save(config=cfg.solver, f=solver_config_file_path)
-        print(f"Solver config saved to {solver_config_file_path}")
-
-    benchmark_config_dump = os.path.join(cfg.root_dir, "benchmark_config")
-    os.makedirs(benchmark_config_dump, exist_ok=True)
-    benchmark_config_file_path = os.path.join(benchmark_config_dump,f'{cfg.benchmark.name}_config.yaml')
-    #check if the solver config file exists
-    if not os.path.exists(benchmark_config_file_path):
-        OmegaConf.save(config=cfg.benchmark, f=benchmark_config_file_path)
-        print(f" Benchmark config saved to {benchmark_config_file_path}")
-
-
-
+    utils.dump_configs(cfg)
 
     matching_format = utils.get_matching_format(
         cfg.solver.format, cfg.benchmark.format
@@ -96,9 +102,9 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
     desc = f"{cfg.solver.name}"
 
     # Check if the solver is run with additional paramters, if so, append them to the result file name
-    result_file_name = utils.get_result_file_name(cfg)
+    solver_output_file_name = utils.get_solver_output_file_name(cfg)
 
-    result_file_path = os.path.join(output_root_dir,result_file_name)
+    result_file_path = os.path.join(output_root_dir,solver_output_file_name)
 
     utils.write_result_file_to_index(result_file_path,index_file=cfg.result_index_file)
 
@@ -116,13 +122,9 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
             solver_interface_command, cfg.timeout, current_output_file_path
         )
 
-        # If the solver did not timed_out or exit with an error, check if the output is valid
-        if not result['timed_out'] and not result['exit_with_error']:
-            # Check if the output is valid
-            is_output_valid = utils.is_solver_output_valid_accaptance_task(result['result_path'])
-            result.update({'solver_output_valid':is_output_valid})
-        else:
-            result.update({'solver_output_valid':False})
+        # Validate solver output
+        is_output_valid = utils.validate_solver_output_accaptance_task(cfg,result)
+        result.update({'solver_output_valid': is_output_valid})
 
         # Append additional info like solver, benchmark and general infos
         prefixed_solver_info = utils.generate_solver_info(cfg)
@@ -139,6 +141,25 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
 
 # Method to run static enumeration task such as SE or EE
 def run_solver_static_enumeration(cfg: DictConfig) -> None:
+    """
+    Executes a static enumeration solver based on the provided configuration.
+
+    Args:
+        cfg (DictConfig): Configuration object containing solver and benchmark settings.
+
+    The function performs the following steps:
+    1. Dumps the configuration settings.
+    2. Determines the matching format between solver and benchmark.
+    3. Retrieves the list of benchmark instances.
+    4. Prepares the solver interface command.
+    5. Adjusts the solver command based on the interface type.
+    6. Sets up the output directory and result file path.
+    7. Iterates over each benchmark instance, runs the solver, validates the output, and writes the results to a CSV file.
+
+    The function exits if no matching formats are found between the solver and benchmark.
+    """
+
+    utils.dump_configs(cfg)
 
     matching_format = utils.get_matching_format(
         cfg.solver.format, cfg.benchmark.format
@@ -176,11 +197,9 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
 
 
     # Check if the solver is run with additional paramters, if so, append them to the result file name
-    result_file_name = utils.get_result_file_name(cfg)
+    solver_output_file_name = utils.get_solver_output_file_name(cfg)
 
-
-
-    result_file_path = os.path.join(output_root_dir,result_file_name)
+    result_file_path = os.path.join(output_root_dir,solver_output_file_name)
 
     utils.write_result_file_to_index(result_file_path,index_file=cfg.result_index_file)
 
@@ -195,6 +214,10 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
         result = utils.run_solver_with_timeout(
             solver_interface_command, cfg.timeout, current_output_file_path
         )
+
+        # Validate solver output
+        is_output_valid = utils.validate_solver_output_enumeration_task(cfg,result)
+        result.update({'solver_output_valid': is_output_valid})
 
         # Append additional info like solver, benchmark and general infos
         prefixed_solver_info = utils.generate_solver_info(cfg)

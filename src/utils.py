@@ -146,7 +146,7 @@ def need_additional_arguments(task: str):
     else:
         return False
 
-def get_result_file_name(cfg: DictConfig) -> str:
+def get_solver_output_file_name(cfg: DictConfig) -> str:
     """
     Generates a result file name based on the configuration provided.
 
@@ -427,3 +427,186 @@ def is_solver_output_valid_accaptance_task(output_file:str) -> bool:
         return True
 
     return False
+
+
+def is_valid_solver_output_enumeration_task(interface: str, task: str, solver_output_path: str) -> bool:
+    """
+    Validate solver output for SE or EE tasks under the ICCMA23 or ICCMA15-21 format.
+
+    :param interface:   The interface name, e.g., "ICCMA23" or something in ["ICCMA15","ICCMA21", ...].
+    :param task:        The task, e.g., "SE" (stable extension) or "EE" (all extensions).
+    :param solver_output: The raw output string from the solver.
+
+    :return: True if the output is valid for the given interface/task specification, False otherwise.
+
+    ------------------------------------------------------------
+    FORMATTING RULES
+
+    1) ICCMA23
+       - SE task:
+           • If there is a solution: a single line beginning with "_w" followed by space-separated integers
+             e.g. "_w 1 2 4 5"
+           • If there is no solution: the single line "NO"
+       - EE task:
+           • Not specified in the question. You may adapt to your needs.
+             Below, we mark anything as valid for EE to avoid throwing false negatives.
+
+    2) ICCMA15–21 (legacy interfaces)
+       - SE task:
+           • A single extension enclosed in brackets, e.g. "[1,2,3]" or "[]".
+             (In practice, stable extension solvers might return "[]", or "[1,2,5]" etc.)
+       - EE task:
+           • "[]" if there is no extension.
+           • "[ [] ]" if there is only the empty extension.
+           • "[ [1,2,3],[2,4,5] ]" if there are multiple extensions.
+             In short, check either for "[]" or something that starts with "[[" and ends with "]]".
+    ------------------------------------------------------------
+    """
+    with open(solver_output_path, 'r') as f:
+        solver_output = f.read()
+    # Clean up any leading/trailing whitespace
+    output = solver_output.strip()
+
+    print(f'{output=}')
+    is_valid = True
+
+    # Normalize the interface string for comparison
+    if interface.lower() == "legacy":
+        # Legacy interface checks
+        if "SE-" in task:
+            # Expect something like "[...]" or possibly "[]" if empty
+            # Minimal check: must start with "[" and end with "]"
+            if not (output.startswith("[") and output.endswith("]")):
+                is_valid = False
+
+        elif "EE-" in task:
+            # Check for [] or something in the style [[ ... ]]
+            if output == "[]":
+                # No extension scenario
+                is_valid = True
+            elif output.startswith("[[") and output.endswith("]]"):
+                # Extensions enclosed in double brackets
+                is_valid = True
+            else:
+                is_valid = False
+        else:
+            # Unknown task
+            is_valid = False
+
+    elif interface.lower() == "i23":
+        print('checking i23')
+        # ICCMA23 checks
+        if "SE-" in task:
+            print('checking SE')
+            # "NO" if no solution, or "_w " followed by integers if there is a solution
+            if output == "NO":
+                is_valid = True
+            elif output.startswith("w "):
+                # Check the parts after splitting on whitespace
+                parts = output.split()
+                if parts[0] != "w":
+                    is_valid = False
+                else:
+                    # Ensure all subsequent parts are valid integers
+                    for p in parts[1:]:
+                        try:
+                            int(p)
+                        except ValueError:
+                            is_valid = False
+                            break
+            else:
+                # Not matching "NO" or "w N1 N2..."
+                is_valid = False
+
+        elif  "EE-" in task:
+            # Not specified in the problem description for ICCMA23
+            # If you have no specification, either allow or disallow by default.
+            # Here, we'll allow anything for demonstration.
+            is_valid = True
+        else:
+            is_valid = False
+    else:
+        # Unrecognized interface
+        is_valid = False
+
+    return is_valid
+
+
+def validate_solver_output_enumeration_task(cfg: DictConfig, result: Dict[str, any]) -> bool:
+    """
+    Check the solver output and update the result dictionary with the validity of the solver output.
+
+    Args:
+        cfg: Configuration object containing solver and task information.
+        result: Dictionary containing the result information including 'timed_out' and 'exit_with_error' keys.
+
+    Returns:
+        bool: Status of validity.
+    """
+    if cfg.check_solver_output:
+        # If the solver did not time out or exit with an error, check if the output is valid
+        if not result['timed_out'] and not result['exit_with_error']:
+            # Check if the output is valid
+            is_output_valid = is_valid_solver_output_enumeration_task(cfg.solver.interface, cfg.task, result['result_path'])
+            return is_output_valid
+        else:
+            return False
+    else:
+        return True
+def validate_solver_output_accaptance_task(cfg: DictConfig, result: Dict[str, any]) -> bool:
+    """
+    Check the solver output and update the result dictionary with the validity of the solver output.
+
+    Args:
+        cfg: Configuration object containing solver and task information.
+        result: Dictionary containing the result information including 'timed_out' and 'exit_with_error' keys.
+
+    Returns:
+        bool: Status of validity.
+    """
+    if cfg.check_solver_output:
+        # If the solver did not time out or exit with an error, check if the output is valid
+        if not result['timed_out'] and not result['exit_with_error']:
+            # Check if the output is valid
+            is_output_valid = is_solver_output_valid_accaptance_task(cfg.solver.interface, cfg.task, result['result_path'])
+            return is_output_valid
+        else:
+            return False
+    else:
+        return True
+
+
+def dump_configs(cfg):
+    """
+    Dumps the solver and benchmark configurations into separate directories as YAML files.
+
+    Args:
+        cfg: The configuration object containing `solver` and `benchmark` configurations.
+            - `cfg.root_dir` (str): The root directory to save the configuration files.
+            - `cfg.solver` (DictConfig): The solver configuration.
+            - `cfg.solver.name` (str): The name of the solver.
+            - `cfg.benchmark` (DictConfig): The benchmark configuration.
+            - `cfg.benchmark.name` (str): The name of the benchmark.
+
+    Returns:
+        None
+    """
+    # Create directory and dump solver config
+    solver_config_dump = os.path.join(cfg.root_dir, "solver_config")
+    os.makedirs(solver_config_dump, exist_ok=True)
+    solver_config_file_path = os.path.join(solver_config_dump, f'{cfg.solver.name}_config.yaml')
+
+    if not os.path.exists(solver_config_file_path):
+        OmegaConf.save(config=cfg.solver, f=solver_config_file_path)
+        print(f"Solver config saved to {solver_config_file_path}")
+
+    # Create directory and dump benchmark config
+    benchmark_config_dump = os.path.join(cfg.root_dir, "benchmark_config")
+    os.makedirs(benchmark_config_dump, exist_ok=True)
+    benchmark_config_file_path = os.path.join(benchmark_config_dump, f'{cfg.benchmark.name}_config.yaml')
+
+    if not os.path.exists(benchmark_config_file_path):
+        OmegaConf.save(config=cfg.benchmark, f=benchmark_config_file_path)
+        print(f"Benchmark config saved to {benchmark_config_file_path}")
+
+
