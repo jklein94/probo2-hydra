@@ -33,7 +33,7 @@ The following sections will guide you through the initial steps of installing pr
 - Clone the repository
 
 ```
-git clone https://github.com/aig-hagen/probo2.git
+git clone https://github.com/jklein94/probo2-hydra.git
 ```
 
 - Navigate to project folder and create a virtual enviroment
@@ -68,8 +68,8 @@ pip install -e .
 
 ## Run your first experiment
 
-In this section, we describe the general workflow of probo2 and how experiments are managed.
-As you will see, with probo2, it is easy to set up an experiment. We only need three things:
+In this section, we describe the general workflow of probo2-run and how experiments are managed.
+As you will see, with probo2-run, it is easy to set up an experiment. We only need three things:
 >
 > 1. The argumentation solvers
 > 2. The benchmark instances

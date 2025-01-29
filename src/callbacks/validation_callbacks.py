@@ -23,10 +23,10 @@ def validate_solver_results(df: pd.DataFrame, config: DictConfig):
         if benchmark_config.solution_path == "" or not os.path.exists(benchmark_config.solution_path):
                     raise FileNotFoundError("The solution_path is not valid")
         else:
+            print(f"Validating solver results for benchmark: {benchmark_name}, task: {task}, solver: {solver_name}")
             instance_names_in_df = df["instance"].unique()
             missing_file_path = os.path.join(config.result_validation_output_dir, f"{solver_name}_{benchmark_name}_{task}_missing_instances.txt")
             reference_solutions_df = load_reference_solutions(benchmark_config.solution_path, task,expected_instances=instance_names_in_df, missing_file=missing_file_path)
-
             # compare the reference solution with the solver solution
             solver_solutions_df = load_solver_solutions(df)
 
@@ -39,7 +39,7 @@ def validate_solver_results(df: pd.DataFrame, config: DictConfig):
             #iterate over the rows of the dataframe and compare the solver solution with the reference solution
             for index, row in solver_solutions_df.iterrows():
                 if row["solver_solution"] == "INVALID":
-                    df.loc[index, "solution_valid"] = False
+                    df.loc[index, "solver_output_valid"] = False
                     # write the path of the instance with the invalid solution to a file
                     with open(os.path.join(config.result_validation_output_dir, f"{solver_name}_{benchmark_name}_{task}_invalid_solution.txt"), "a") as file:
                         file.write(row["instance"] + "\n")
@@ -47,8 +47,8 @@ def validate_solver_results(df: pd.DataFrame, config: DictConfig):
                 else:
                     # get the reference solution for the instance
                     reference_solution = reference_solutions_df[reference_solutions_df["instance"] == row["raw_instance_name"]]["solution"].iloc[0]
-                    df.loc[index, "solution_valid"] = row["solver_solution"] == reference_solution
-                    print(f"Instance: {row['instance']}, Solver Solution: {row['solver_solution']}, Reference Solution: {reference_solution}, Valid: {df.loc[index, 'solution_valid']}")
+                    df.loc[index, "solver_output_valid"] = row["solver_solution"] == reference_solution
+                    print(f"Instance: {row['instance']}, Solver Solution: {row['solver_solution']}, Reference Solution: {reference_solution}, Valid: {df.loc[index, 'solver_output_valid']}")
 
             return df
 
@@ -102,13 +102,13 @@ class ValidateSolutionsAccaptanceTasks(Callback):
         # Create directory for the validation results
         os.makedirs(config['result_validation_output_dir'], exist_ok=True)
 
-        # TODO: Alle benchmark configs laden,
         result_file = config["combined_results_file"]
         if not os.path.exists(result_file):
             print(f"File {result_file} does not exist")
             return None
         combined_results_df = pd.read_csv(result_file)
 
+        # Clean the dataframe from rows with exit_with_error and timed_out
         combined_results_df_clean = clean_df(combined_results_df)
         # # Filter df for DC and DS tasks
         accaptance_df = combined_results_df_clean[
@@ -118,73 +118,52 @@ class ValidateSolutionsAccaptanceTasks(Callback):
         accaptance_df = filter_for_task(combined_results_df_clean, "DC|DS")
         validated_solutions_df = accaptance_df.groupby(['benchmark_name','task','solver_name']).apply(lambda _df : validate_solver_results(_df,config))
 
-        print(validated_solutions_df)
+        # >>> validated_solutions_df has the new column "solver_output_valid" <<<
+        # It also has all the same identifying columns, but only for DC/DS rows.
 
-        validated_solutions_df.to_csv(config['result_validation_combined_results_file'])
-        return None
+        # 4. Merge the validated results back
+        #    (Adjust the identifying columns to match your real case.)
+        identifying_cols = ['benchmark_name', 'task', 'solver_name', 'instance']  # Example
 
-        benchmark_names = combined_results_df.benchmark_name.unique()
+        # If "validated_solutions_df" still has a groupby index, reset it
+        # so that the identifying columns are actual columns, not just index levels.
+        validated_solutions_df = validated_solutions_df.reset_index(drop=True)
 
-        # Iterate over all benchmarks in the results dataframe
-        for benchmark_name in benchmark_names:
-            # Read benchmark config from config.root_dir.benchmark_config
-            benchmark_config = OmegaConf.load(os.path.join(config.root_dir, "benchmark_config", f"{benchmark_name}_config.yaml"))
+        # Keep only the identifying columns + the new "solver_output_valid" column.
+        validated_solutions_subset = validated_solutions_df[
+            identifying_cols + ['solver_output_valid']
+        ]
+        # # Merge with "left" join on the big combined_results_df
+        # # so that we only update rows that exist in validated_solutions_df
+        merged_df = pd.merge(
+            combined_results_df,
+            validated_solutions_subset,
+            on=identifying_cols,
+            how="left",
+            suffixes=("", "_validated")  # handle column name collisions
+        )
 
-            # Validate the solver results against given solutions
-            # Check if in the benchmarks config a solutions_path is given
-            if "solution_path" in benchmark_config.keys():
+        merged_df.to_csv(config['result_validation_combined_results_file'], index=False)
 
-                # Check if solution_path is not empty and the path exists
-                if benchmark_config.solution_path == "" or not os.path.exists(
-                    benchmark_config.solution_path
-                ):
-                    raise FileNotFoundError("The solution_path is not valid")
-                else:
-                    # Read every file with the following pattern <instance_name>_<task>.sol
 
-                    # Make sure that the exit_with_error and timed_out columns are boolean
-                    combined_results_df["exit_with_error"] = combined_results_df[
-                        "exit_with_error"
-                    ].astype(bool)
-                    combined_results_df["timed_out"] = combined_results_df[
-                        "timed_out"
-                    ].astype(bool)
 
-                    # Remove instances where the solver exited with an error and timed out as the do not need to be validated
-                    combined_results_df_clean = combined_results_df[
-                        combined_results_df["exit_with_error"] == False & combined_results_df["timed_out"] == False
-                    ]
+        # 5. Combine old and new values of solver_output_valid
+        # If a row was in validated_solutions_df, the merged column
+        # "solver_output_valid_validated" will have True/False.
+        # If not, it will have NaN. We overwrite only the matching rows:
+        merged_df['solver_output_valid'] = merged_df['solver_output_valid_validated'].fillna(
+            merged_df['solver_output_valid']  # The original (could be None, or default)
+        )
 
-                    # # Filter df for DC and DS tasks
-                    accaptance_df = combined_results_df_clean[
-                        combined_results_df_clean["task"].str.contains("DC|DS")
-                    ]
+        # We do not need the helper column anymore
+        merged_df.drop(columns=['solver_output_valid_validated'], inplace=True)
 
-                    unique_tasks = accaptance_df["task"].unique()
 
-                    for file in os.listdir(benchmark_config.solution_path):
-                        if file.endswith(".sol"):
-                            for task in unique_tasks:
 
-                                solutions_df = load_solutions(
-                                    benchmark_config.solution_path, task
-                                )
-                                print(
-                                    f"Loaded {len(solutions_df)} solutions for task {task}"
-                                )
-                                print(solutions_df)
-                                # # Merge the results with the solutions
-                                # merged_df = pd.merge(combined_results_df_clean, df, how='inner', left_on=['benchmark_name'], right_on=['instance'])
-                                # # Check if the solution is correct
-                                # merged_df['correct'] = merged_df['solution'] == merged_df['status']
-                                # # Calculate the percentage of correct solutions
-                                # correct_percentage = merged_df['correct'].mean()
-                                # print(f'The percentage of correct solutions for task {task} is {correct_percentage}')
-                                # # Save the statistics to a csv file
-                                # correct_solution_result_file = os.path.join(config['evaluation_output_dir'], 'correct_solution.csv')
-                                # merged_df.to_csv(correct_solution_result_file)
-                                # # Write filepath to evaluation file index
-                                # utils.write_evaluation_file_to_index(correct_solution_result_file, config['evaluation_result_index_file'])
+        # 6. Write out the final updated dataframe
+        merged_df.to_csv(config['combined_results_file'], index=False)
+
+
 
 
 def check_solution_content_acceptance(df: pd.DataFrame, task: str) -> pd.Series:
@@ -228,6 +207,7 @@ def load_reference_solutions(
     """
     # Regex to match filenames like <anything>_<task>.sol, where <anything> can be any string
     #   '(.+)' captures everything until '_<task>.sol'
+    print(f"Looking for files in {directory} with pattern '(.+)_{task}.sol'")
     pattern = re.compile(rf"^(.+)_{re.escape(task)}\.sol$")
     if expected_instances is None:
         expected_instances = set()
@@ -245,19 +225,22 @@ def load_reference_solutions(
             found_data.append({"instance": instance_name, "solution": content})
             found_instances.add(instance_name)
     # Convert results to a DataFrame
+    print(f"Found {len(found_data)} solutions.")
     df = pd.DataFrame(found_data, columns=["instance", "solution"])
     # Check solutions are strictly YES or NO
     valid_solutions = check_solution_content_acceptance(df, task)
+    print(f"Valid solutions: {valid_solutions.sum()}/{len(valid_solutions)}")
     if not valid_solutions.empty and not valid_solutions.all():
         invalid = df[~valid_solutions]
         print("WARNING: Some solutions are not 'YES' or 'NO':")
         print(invalid)
         # Or raise an error: raise ValueError("Some solutions are not 'YES' or 'NO'.")
     # Identify missing instances if we have an expected set
-    if expected_instances:
+    print(f"Expected instances: {len(expected_instances)}")
+    if expected_instances is not None and len(expected_instances) > 0:
         expected_set = set(os.path.splitext(os.path.basename(instance))[0] for instance in expected_instances)
         missing = sorted(expected_set - found_instances)
-        if missing:
+        if missing is not None and len(missing) > 0:
             print(
                 f"{len(missing)} expected instance(s) are missing. Writing them to {missing_file}"
             )

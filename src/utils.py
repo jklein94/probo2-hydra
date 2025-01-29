@@ -568,7 +568,7 @@ def validate_solver_output_accaptance_task(cfg: DictConfig, result: Dict[str, an
         # If the solver did not time out or exit with an error, check if the output is valid
         if not result['timed_out'] and not result['exit_with_error']:
             # Check if the output is valid
-            is_output_valid = is_solver_output_valid_accaptance_task(cfg.solver.interface, cfg.task, result['result_path'])
+            is_output_valid = is_solver_output_valid_accaptance_task(result['result_path'])
             return is_output_valid
         else:
             return False
