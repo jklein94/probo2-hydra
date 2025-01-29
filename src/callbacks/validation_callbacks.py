@@ -159,9 +159,9 @@ class ValidateSolutionsAccaptanceTasks(Callback):
         merged_df.drop(columns=['solver_output_valid_validated'], inplace=True)
 
 
-
-        # 6. Write out the final updated dataframe
-        merged_df.to_csv(config['combined_results_file'], index=False)
+        if config['update_solver_output_valid_flag']:
+            # 6. Write out the final updated dataframe
+            merged_df.to_csv(config['combined_results_file'], index=False)
 
 
 
