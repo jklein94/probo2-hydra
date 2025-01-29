@@ -172,6 +172,8 @@ cython_debug/
 
 
 
-_*
+__*
 results/
 
+cuda-keyring_1.0-1_all.deb
+nodesource_setup.sh
