@@ -115,9 +115,9 @@ def print_solver_report(solver_validation_results: dict, is_valid: bool, cfg: Di
         print(f"    {RED}✘ Solver executable path exists{RESET} ({cfg.solver.path})")
 
     if solver_validation_results["interface_supported"]:
-        print(f"    {GREEN}✔ Interface {cfg.solver.interface} not supported{RESET}")
+        print(f"    {GREEN}✔ Interface {cfg.solver.interface} supported{RESET}")
     else:
-        print(f"    {RED}✘ Interface {cfg.solver.interface} supported{RESET}")
+        print(f"    {RED}✘ Interface {cfg.solver.interface} not supported{RESET}")
 
 
 def check_benchmark_config(config: Dict) -> Tuple[Dict[str, bool], bool]:

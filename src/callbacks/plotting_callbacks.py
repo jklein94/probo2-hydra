@@ -1,0 +1,131 @@
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+from typing import Any
+from hydra.experimental.callback import Callback
+from omegaconf import DictConfig
+import seaborn as sns
+
+from src import utils  # your utility module (e.g., create_callback_chain, write_evaluation_file_to_index)
+
+
+class CactusPlot(Callback):
+    def __init__(self, combine_multiple_runs: bool = False, runtime_key: str = "perfcounter_time"):
+        """
+        Constructor to initialize CactusPlot with options from cactus_plot.yaml.
+
+        Args:
+            combine_runs (bool): Whether to combine runs or not.
+            runtime_key (str): The key to use for runtime ('perfcounter_time' or 'user_sys_time').
+        """
+        self.combine_runs = combine_multiple_runs
+        self.runtime_key = runtime_key
+
+
+    def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        """
+        Creates multiple cactus plots from the aggregated solver data once all
+        multirun executions have finished — one plot per (task, benchmark_name)
+        combination.
+
+        Assumes:
+          - config['combined_results_file'] points to a CSV file with columns:
+              'solver_name', 'perfcounter_time', 'solver_output_valid',
+              'task', 'benchmark_name', ...
+          - config['evaluation_output_dir'] is a directory for saving plots/results.
+        """
+
+        # 1. Print the callback chain with the current callback highlighted
+        current_callback_name = "cactus_plot"
+        print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+
+        # 2. Get the aggregated results file path from config
+        result_file = config.get("combined_results_file")
+        if not result_file or not os.path.exists(result_file):
+            print(f"File '{result_file}' does not exist. Skipping cactus plot.")
+            return
+
+        # 3. Load the data
+        df = pd.read_csv(result_file)
+
+        # 4. Column name config (optional)
+        runtime_col =  self.runtime_key
+        valid_col = "solver_output_valid"
+        task_col = "task"
+        bench_col = "benchmark_name"
+
+        # Combine results of multiple runs if needed
+        # Check if the data has multiple runs and if the combine_runs is true
+        print(df[["task", "benchmark_name", "solver_name","instance",runtime_col,valid_col]])
+
+        df = df.groupby(["task", "benchmark_name", "solver_name","instance"]).agg(
+                {runtime_col: "mean", valid_col: "all"} # This excludes each instances that are not solved by all runs
+            ).reset_index()
+
+
+        print(df[["task", "benchmark_name", "solver_name","instance",runtime_col,valid_col]])
+
+        print(df)
+
+        # 5. Filter data for solved instances if you only want successful runs
+        df_solved = df[df[valid_col] == True].copy()
+        if df_solved.empty:
+            print("No solved instances found. Cactus plots not generated.")
+            return
+
+        # 6. Group the dataframe by (task, benchmark_name)
+        task_bench_groups = df_solved.groupby([task_col, bench_col])
+
+        output_dir = config.get("plots_output_dir", ".")
+        os.makedirs(output_dir, exist_ok=True)
+
+        # 7. Iterate through each (task, benchmark_name) combination
+        for (task_val, bench_val), group_df in task_bench_groups:
+            # Create a figure for this combination
+            fig,ax = plt.subplots(figsize=(10, 6))
+            frames = []
+            # 7a. Group again by solver_name to generate lines in the cactus plot
+            for solver_name, solver_df in group_df.groupby("solver_name"):
+                sorted_times = solver_df[runtime_col].sort_values().reset_index(drop=True)
+                x = range(1, len(sorted_times) + 1)
+                y = sorted_times
+
+                 # first get the times in ascending order
+                t = pd.DataFrame({'time' : y, 'n_solved' : x})
+                t['solver_name'] = solver_name
+
+                # keep this frame to collate at the end
+                frames.append(t)
+
+            data = pd.concat(frames, ignore_index=True)
+
+            sns.lineplot(ax=ax,data=data,y='time',x='n_solved',
+                         hue='solver_name',style='solver_name',
+                         markers=True, dashes=False)
+            ax.set(title=f"Cactus Plot\nTask: {task_val}, Benchmark: {bench_val}",
+                    ylabel="CPU time(seconds)", xlabel="# of instances solved")
+            fig.tight_layout()
+            plt.plot(x, y, label=solver_name)
+
+            # 7b. Customize titles/labels
+            # plt.title(f"Cactus Plot\nTask: {task_val}, Benchmark: {bench_val}")
+            # plt.xlabel("Number of Instances Solved")
+            # plt.ylabel("Runtime (seconds)")
+            plt.legend(loc="best")
+
+            # 7c. Create a safe file name (you can adapt sanitization as needed)
+            # e.g. replace spaces and special chars
+            safe_task = str(task_val).replace(" ", "_")
+            safe_bench = str(bench_val).replace(" ", "_")
+            plot_filename = f"cactus_plot_{safe_task}_{safe_bench}.png"
+            plot_path = os.path.join(output_dir, plot_filename)
+
+            plt.savefig(plot_path, bbox_inches="tight")
+            plt.close()
+
+            print(f"Saved cactus plot for (task={task_val}, benchmark={bench_val}) to '{plot_path}'")
+
+            # 7d. (Optional) Register this file in the evaluation file index
+            # index_file = config.get("evaluation_result_index_file")
+            # if index_file:
+            #     utils.write_evaluation_file_to_index(plot_path, index_file)
