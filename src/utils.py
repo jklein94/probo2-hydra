@@ -466,8 +466,6 @@ def is_valid_solver_output_enumeration_task(interface: str, task: str, solver_ou
         solver_output = f.read()
     # Clean up any leading/trailing whitespace
     output = solver_output.strip()
-
-    print(f'{output=}')
     is_valid = True
 
     # Normalize the interface string for comparison
@@ -494,10 +492,8 @@ def is_valid_solver_output_enumeration_task(interface: str, task: str, solver_ou
             is_valid = False
 
     elif interface.lower() == "i23":
-        print('checking i23')
         # ICCMA23 checks
         if "SE-" in task:
-            print('checking SE')
             # "NO" if no solution, or "_w " followed by integers if there is a solution
             if output == "NO":
                 is_valid = True

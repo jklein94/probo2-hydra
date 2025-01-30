@@ -7,8 +7,7 @@ defaults:
   - benchmark: ???  # Default benchmark
   - config_validation: default # default options for the validation of the config
   - callbacks/notifications: pushover_api_credentials  # Default credentials for the pushover API
-
- # - override hydra/launcher: joblib
+  #- override /hydra/launcher: joblib
 
 # +++++ Definition of the default paths for experiments +++++
 

@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 import os
 from src import utils
 from functools import reduce
-
+from hydra.core.hydra_config import HydraConfig
 
 
 class All(Callback):
@@ -31,16 +31,16 @@ class All(Callback):
 class MeanRuntime(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
         result_file = config['combined_results_file']
+
+        #print(config.hydra.callbacks)
         #Check if files exists before reading
         if not os.path.exists(result_file):
             print(f"File {result_file} does not exist")
             return None
         df = pd.read_csv(result_file)
-        # Filter out rows where 'exit_with_error' is True
-        filtered_data = df[df['exit_with_error'] == False]
 
         # Group by solvername and calculate statistics
-        stats = filtered_data.groupby(['task','benchmark_name','solver_name']).agg(
+        stats = df.groupby(['task','benchmark_name','solver_name']).agg(
             mean_perfcounter_time=('perfcounter_time', 'mean'),
             mean_user_sys_time=('user_sys_time', 'mean'),
         ).reset_index()
@@ -64,17 +64,19 @@ class Coverage(Callback):
             return None
 
         df = pd.read_csv(result_file)
-        # Filter out rows where 'exit_with_error' is True
-        filtered_data = df[df['exit_with_error'] == False]
+
+
 
         # Group by solvername and calculate statistics
-        stats = filtered_data.groupby(['task','benchmark_name','solver_name']).agg(
-            coverage=('timed_out',  lambda x: (~x).mean())
+        stats = df.groupby(['task','benchmark_name','solver_name']).agg(
+            coverage=('solver_output_valid',  lambda x: (x).mean())
         ).reset_index()
 
         # Save the statistics to a csv file
         coverage_result_file = os.path.join(config['evaluation_output_dir'], 'coverage.csv')
         stats.to_csv(coverage_result_file)
+
+        print(stats)
 
         # Write filepath to evaluation file index
         utils.write_evaluation_file_to_index(coverage_result_file, config['evaluation_result_index_file'])
