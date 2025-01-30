@@ -123,3 +123,114 @@ class AggreateEvaluationResults(Callback):
         except Exception as e:
             print(f"An error occurred: {e}")
 
+class PenalizedAverageRuntime2(Callback):
+    def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        """
+        This callback calculates the Penalized Average Runtime (PAR_α) after
+        all runs are complete. It assumes there's an aggregated CSV file
+        containing at least:
+            - 'perfcounter_time' (float): the runtime of each instance
+            - 'solver_output_valid' (bool): indicates if a solver succeeded
+            - 'solver_name' (str): name of the solver
+            - 'task' (str): optional grouping column
+            - 'benchmark_name' (str): optional grouping column
+
+        The callback will:
+            1. Read the aggregated CSV.
+            2. Compute T′_i = T_i if solver_output_valid, else α * T_max.
+            3. Group by (task, benchmark_name, solver_name) and calculate the
+               mean of T′_i for PAR_α.
+            4. Save to par_runtime.csv and register that file in an index file.
+        """
+
+        # 1. Print the callback chain with this callback highlighted
+        current_callback_name = "PAR2"
+        print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+
+        # 2. Read the aggregated CSV file that combines all results
+        result_file = config.get("combined_results_file")
+        if not result_file or not os.path.exists(result_file):
+            print(f"File '{result_file}' does not exist. Skipping PAR calculation.")
+            return
+
+        df = pd.read_csv(result_file)
+        par_stats = calculate_par_score(df,config.get("timeout", 600),2)
+
+        print(f"Calculated PAR2 score with timeout {config.timeout} statistics:\n")
+        print(par_stats)
+
+        # 6. Save the PAR results to a CSV file
+        output_dir = config.get("evaluation_output_dir", ".")
+        par_runtime_file = os.path.join(output_dir, "par_2_score.csv")
+        par_stats.to_csv(par_runtime_file, index=False)
+
+        # 7. Optionally, register this file in the evaluation file index
+        index_file = config.get("evaluation_result_index_file")
+        if index_file:
+            utils.write_evaluation_file_to_index(par_runtime_file, index_file)
+
+class PenalizedAverageRuntime10(Callback):
+    def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        """
+        This callback calculates the Penalized Average Runtime (PAR_α) after
+        all runs are complete. It assumes there's an aggregated CSV file
+        containing at least:
+            - 'perfcounter_time' (float): the runtime of each instance
+            - 'solver_output_valid' (bool): indicates if a solver succeeded
+            - 'solver_name' (str): name of the solver
+            - 'task' (str): optional grouping column
+            - 'benchmark_name' (str): optional grouping column
+
+        The callback will:
+            1. Read the aggregated CSV.
+            2. Compute T′_i = T_i if solver_output_valid, else α * T_max.
+            3. Group by (task, benchmark_name, solver_name) and calculate the
+               mean of T′_i for PAR_α.
+            4. Save to par_runtime.csv and register that file in an index file.
+        """
+
+        # 1. Print the callback chain with this callback highlighted
+        current_callback_name = "PAR10"
+        print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+
+        # 2. Read the aggregated CSV file that combines all results
+        result_file = config.get("combined_results_file")
+        if not result_file or not os.path.exists(result_file):
+            print(f"File '{result_file}' does not exist. Skipping PAR calculation.")
+            return
+
+        df = pd.read_csv(result_file)
+        par_stats = calculate_par_score(df,config.get("timeout", 600),10)
+
+        print(f"Calculated PAR10 score with timeout {config.timeout} statistics:\n")
+        print(par_stats)
+
+        # 6. Save the PAR results to a CSV file
+        output_dir = config.get("evaluation_output_dir", ".")
+        par_runtime_file = os.path.join(output_dir, "par_10_score.csv")
+        par_stats.to_csv(par_runtime_file, index=False)
+
+        # 7. Optionally, register this file in the evaluation file index
+        index_file = config.get("evaluation_result_index_file")
+        if index_file:
+            utils.write_evaluation_file_to_index(par_runtime_file, index_file)
+
+def calculate_par_score(df: pd.DataFrame,t_max: int,alpha: int) -> pd.DataFrame:
+            # 3. Retrieve T_max (timeout) and α (penalty factor) from the config
+    #    Provide defaults if not specified
+    # 4. Compute penalized runtime for each instance
+    #    If solver_output_valid is True -> T'_i = T_i
+    #    else -> T'_i = α * T_max
+    df[f"PAR_{alpha}"] = df.apply(
+        lambda row: row["perfcounter_time"] if row["solver_output_valid"] else alpha * t_max,
+        axis=1
+    )
+    # 5. Group by relevant columns and calculate the average penalized time (PAR_α)
+    #    Feel free to adjust grouping columns as needed
+    output_column = f"PAR_{alpha}"
+    par_stats = (
+    df.groupby(["task", "benchmark_name", "solver_name"], dropna=False)
+      .agg(**{output_column: (f"PAR_{alpha}", "mean")})
+      .reset_index()
+)
+    return par_stats
