@@ -605,4 +605,33 @@ def dump_configs(cfg):
         OmegaConf.save(config=cfg.benchmark, f=benchmark_config_file_path)
         print(f"Benchmark config saved to {benchmark_config_file_path}")
 
+def create_callback_chain(callback_dict: dict, current_callback: str) -> str:
+    """
+    Takes a dictionary of callbacks and the name of the 'current' callback,
+    and returns a visually formatted string of callback names in reverse
+    order. If the current_callback is found in the dict, its name is
+    displayed in bold red; otherwise, no highlighting is applied.
+    """
+    # 1. Reverse the dictionary keys
+    reversed_keys = list(callback_dict.keys())[::-1]
 
+    # 2. Prepare the highlighted names
+    highlighted_names = []
+    for key in reversed_keys:
+        if key == current_callback and key in callback_dict:
+            # Highlight current callback in bold red
+            highlighted_names.append(f"\033[1;32m{key}\033[0m")
+        else:
+            highlighted_names.append(f"\033[90m{key}\033[0m")
+
+    # 3. Join them with an arrow
+    chain_str = " -> ".join(highlighted_names)
+
+    # 4. Build a visually pleasing output with a header and footer
+    #    (here using ANSI escape codes for blue + bold lines)
+    header = "\033[1;34m==================== Evaluation Pipeline ====================\033[0m"
+    footer = f"\033[1;34m+ Now running \033[1;32m{current_callback}\033[0m \033[0m\n"
+
+    # 5. Put it all together
+    formatted_output = f"\n{header}\n{chain_str}\n{footer}"
+    return formatted_output

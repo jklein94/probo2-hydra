@@ -41,14 +41,14 @@ def validate_solver_results(df: pd.DataFrame, config: DictConfig):
                 if row["solver_solution"] == "INVALID":
                     df.loc[index, "solver_output_valid"] = False
                     # write the path of the instance with the invalid solution to a file
+                    print(f"Invalid solution for instance: {row['instance']}")
                     with open(os.path.join(config.result_validation_output_dir, f"{solver_name}_{benchmark_name}_{task}_invalid_solution.txt"), "a") as file:
                         file.write(row["instance"] + "\n")
-                    print(f"Invalid solution for instance: {row['instance']}")
                 else:
                     # get the reference solution for the instance
                     reference_solution = reference_solutions_df[reference_solutions_df["instance"] == row["raw_instance_name"]]["solution"].iloc[0]
                     df.loc[index, "solver_output_valid"] = row["solver_solution"] == reference_solution
-                    print(f"Instance: {row['instance']}, Solver Solution: {row['solver_solution']}, Reference Solution: {reference_solution}, Valid: {df.loc[index, 'solver_output_valid']}")
+                    #print(f"Instance: {row['instance']}, Solver Solution: {row['solver_solution']}, Reference Solution: {reference_solution}, Valid: {df.loc[index, 'solver_output_valid']}")
 
             return df
 
@@ -98,7 +98,7 @@ def filter_for_task(df: pd.DataFrame, task: str) -> pd.DataFrame:
 class ValidateSolutionsAccaptanceTasks(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
             # Initialize HydraConfig if not already set
-
+        print(utils.create_callback_chain(config.hydra.callbacks, 'validate_acceptance_tasks'))
         # Create directory for the validation results
         os.makedirs(config['result_validation_output_dir'], exist_ok=True)
 

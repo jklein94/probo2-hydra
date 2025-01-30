@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Any
 from hydra.experimental.callback import Callback
 from omegaconf import DictConfig
+from src import utils
 
 
 import http.client, urllib
@@ -45,6 +46,7 @@ class SendNotificationOnMultiRunEnd(Callback):
             This method sends a Pushover notification to the user stating:
             "Your experiment MyExperiment has finished running!"
         """
+        print(utils.create_callback_chain(config.hydra.callbacks, 'notify_on_multirun_end'))
         user = config.callbacks.notifications.user
         token = config.callbacks.notifications.token
 
@@ -56,6 +58,9 @@ class SendNotificationOnMultiRunEnd(Callback):
                 "user": user,
                 "message": f"Your experiment {experiment_name} has finished running!",
             }), { "Content-type": "application/x-www-form-urlencoded" })
-        conn.getresponse()
+        response = conn.getresponse()
+        print(f"Notification Status: {response.status} - {response.reason}")
+        print(f"Notification Details: Experiment '{experiment_name}', User '{user}', Token '{token}'")
+        print(f"Notification sent for experiment: {experiment_name}")
 
 

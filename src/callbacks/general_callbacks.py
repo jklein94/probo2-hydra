@@ -2,9 +2,10 @@ import pandas as pd
 from typing import Any
 from hydra.experimental.callback import Callback
 from omegaconf import DictConfig
-
+from src import utils
 class AggregateResults(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        print(utils.create_callback_chain(config.hydra.callbacks, 'aggregate_solver_results'))
         index_file = config['result_index_file']
         output_file = config['combined_results_file']
         try:

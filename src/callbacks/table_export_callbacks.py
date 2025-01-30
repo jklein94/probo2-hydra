@@ -5,6 +5,7 @@ from omegaconf import DictConfig
 from pathlib import Path
 import os
 import tabulate
+from src import utils
 
 """
 PlainTextTable Callback
@@ -56,6 +57,7 @@ class PlainTextTable(Callback):
         5. Groups the DataFrame by the specified grouping and saves each group as a text file.
         6. Iterates through the groups and prints each group along with its keys and the grouping used.
         """
+        print(utils.create_callback_chain(config.hydra.callbacks, 'plain_text'))
         # Read the file from config.evaluation_combined_results_file if it exists, otherwise return None
         if config.evaluation_combined_results_file is None:
             # Print a message to the console

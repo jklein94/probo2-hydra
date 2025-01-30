@@ -30,8 +30,8 @@ class All(Callback):
 
 class MeanRuntime(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        print(utils.create_callback_chain(config.hydra.callbacks, 'mean_runtime'))
         result_file = config['combined_results_file']
-
         #print(config.hydra.callbacks)
         #Check if files exists before reading
         if not os.path.exists(result_file):
@@ -57,6 +57,7 @@ class MeanRuntime(Callback):
 
 class Coverage(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        print(utils.create_callback_chain(config.hydra.callbacks, 'coverage'))
         result_file = config['combined_results_file']
 
         if not os.path.exists(result_file):
@@ -85,6 +86,7 @@ class Coverage(Callback):
 class AggreateEvaluationResults(Callback):
     '''This callback is used to aggregate the evaluation results into a single file'''
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        print(utils.create_callback_chain(config.hydra.callbacks, 'aggregate_evaluation_results'))
         index_file = config['evaluation_result_index_file']
         output_file = config['evaluation_combined_results_file']
         print(f"Aggregating evaluation results from {index_file} into {output_file}")
