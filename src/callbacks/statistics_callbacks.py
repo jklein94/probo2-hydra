@@ -31,6 +31,8 @@ class All(Callback):
 class MeanRuntime(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
         print(utils.create_callback_chain(config.hydra.callbacks, 'mean_runtime'))
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
+
         result_file = config['combined_results_file']
         #print(config.hydra.callbacks)
         #Check if files exists before reading
@@ -48,7 +50,7 @@ class MeanRuntime(Callback):
         print(stats)
 
         # Save the statistics to a csv file
-        mean_runtime_result_file = os.path.join(config['evaluation_output_dir'], 'mean_runtime.csv')
+        mean_runtime_result_file = os.path.join(config['statistics_output_dir'], 'mean_runtime.csv')
         stats.to_csv(mean_runtime_result_file)
 
         # Write filepath to evaluation file index
@@ -58,6 +60,7 @@ class MeanRuntime(Callback):
 class Coverage(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
         print(utils.create_callback_chain(config.hydra.callbacks, 'coverage'))
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
         result_file = config['combined_results_file']
 
         if not os.path.exists(result_file):
@@ -74,7 +77,7 @@ class Coverage(Callback):
         ).reset_index()
 
         # Save the statistics to a csv file
-        coverage_result_file = os.path.join(config['evaluation_output_dir'], 'coverage.csv')
+        coverage_result_file = os.path.join(config['statistics_output_dir'], 'coverage.csv')
         stats.to_csv(coverage_result_file)
 
         print(stats)
@@ -87,6 +90,7 @@ class AggreateEvaluationResults(Callback):
     '''This callback is used to aggregate the evaluation results into a single file'''
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
         print(utils.create_callback_chain(config.hydra.callbacks, 'aggregate_evaluation_results'))
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
         index_file = config['evaluation_result_index_file']
         output_file = config['evaluation_combined_results_file']
         print(f"Aggregating evaluation results from {index_file} into {output_file}")
@@ -146,6 +150,7 @@ class PenalizedAverageRuntime2(Callback):
         # 1. Print the callback chain with this callback highlighted
         current_callback_name = "PAR2"
         print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
 
         # 2. Read the aggregated CSV file that combines all results
         result_file = config.get("combined_results_file")
@@ -160,7 +165,7 @@ class PenalizedAverageRuntime2(Callback):
         print(par_stats)
 
         # 6. Save the PAR results to a CSV file
-        output_dir = config.get("evaluation_output_dir", ".")
+        output_dir = config.get("statistics_output_dir", ".")
         par_runtime_file = os.path.join(output_dir, "par_2_score.csv")
         par_stats.to_csv(par_runtime_file, index=False)
 
@@ -192,6 +197,7 @@ class PenalizedAverageRuntime10(Callback):
         # 1. Print the callback chain with this callback highlighted
         current_callback_name = "PAR10"
         print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
 
         # 2. Read the aggregated CSV file that combines all results
         result_file = config.get("combined_results_file")
@@ -206,7 +212,7 @@ class PenalizedAverageRuntime10(Callback):
         print(par_stats)
 
         # 6. Save the PAR results to a CSV file
-        output_dir = config.get("evaluation_output_dir", ".")
+        output_dir = config.get("statistics_output_dir", ".")
         par_runtime_file = os.path.join(output_dir, "par_10_score.csv")
         par_stats.to_csv(par_runtime_file, index=False)
 

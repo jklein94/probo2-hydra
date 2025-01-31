@@ -58,6 +58,7 @@ class PlainTextTable(Callback):
         6. Iterates through the groups and prints each group along with its keys and the grouping used.
         """
         print(utils.create_callback_chain(config.hydra.callbacks, 'plain_text'))
+        os.makedirs(config.tables_output_dir,exist_ok=True)
         # Read the file from config.evaluation_combined_results_file if it exists, otherwise return None
         if config.evaluation_combined_results_file is None:
             # Print a message to the console
@@ -77,7 +78,7 @@ class PlainTextTable(Callback):
 
         self.grouping = list(self.grouping)
 
-        save_to = config.evaluation_output_dir
+        save_to = config.tables_output_dir
         grouped_df = df.groupby(self.grouping)
         grouped_df.apply(lambda _df: self._save_as_text(_df, save_to, self.grouping))
 

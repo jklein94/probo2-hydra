@@ -15,12 +15,17 @@ root_dir: results/${name}_${now:%Y-%m-%d_%H-%M-%S}
 result_index_file:  ${root_dir}/result_file_index.txt
 combined_results_file:  ${root_dir}/combined_results.csv
 
-evaluation_output_dir: ${root_dir}/evaluation_output
+evaluation_output_dir: ${root_dir}/evaluation
+statistics_output_dir: ${evaluation_output_dir}/statistics
+tables_output_dir: ${evaluation_output_dir}/tables
+
+
 evaluation_result_index_file: ${evaluation_output_dir}/evaluation_result_file_index.txt
 evaluation_combined_results_file: ${evaluation_output_dir}/evaluation_combined_results.csv
 
 
-result_validation_output_dir: ${root_dir}/result_validation_output
+
+result_validation_output_dir: ${root_dir}/validation
 result_validation_combined_results_file: ${result_validation_output_dir}/result_validation_combined_results.csv
 
 plots_output_dir: ${root_dir}/plots
@@ -37,7 +42,7 @@ update_solver_output_valid_flag: True # If true the "solver_output_valid" flag i
 hydra:
   sweep:
     dir: ${root_dir}  # Top-level directory for all sweep outputs
-    subdir: ${solver.name}
+    subdir: solver_results/${solver.name}
   output_subdir: ${benchmark.name}/${runs}/${task}  # Nested directories for each parameter combination
 
 

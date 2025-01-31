@@ -633,5 +633,5 @@ def create_callback_chain(callback_dict: dict, current_callback: str) -> str:
     footer = f"\033[1;34m+ Now running \033[1;32m{current_callback}\033[0m \033[0m\n"
 
     # 5. Put it all together
-    formatted_output = f"\n{header}\n{chain_str}\n{footer}"
+    formatted_output = f"\n{header}\n{chain_str}\n\n{footer}"
     return formatted_output
