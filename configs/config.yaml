@@ -24,6 +24,7 @@ result_validation_output_dir: ${root_dir}/result_validation_output
 result_validation_combined_results_file: ${result_validation_output_dir}/result_validation_combined_results.csv
 
 plots_output_dir: ${root_dir}/plots
+configs_output_dir: ${root_dir}/configs
 
 task: ???     # Default task
 timeout: 600

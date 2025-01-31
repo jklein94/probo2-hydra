@@ -578,7 +578,7 @@ def dump_configs(cfg):
 
     Args:
         cfg: The configuration object containing `solver` and `benchmark` configurations.
-            - `cfg.root_dir` (str): The root directory to save the configuration files.
+            - `cfg.configs_output_dir` (str): The root directory to save the configuration files.
             - `cfg.solver` (DictConfig): The solver configuration.
             - `cfg.solver.name` (str): The name of the solver.
             - `cfg.benchmark` (DictConfig): The benchmark configuration.
@@ -588,7 +588,7 @@ def dump_configs(cfg):
         None
     """
     # Create directory and dump solver config
-    solver_config_dump = os.path.join(cfg.root_dir, "solver_config")
+    solver_config_dump = os.path.join(cfg.configs_output_dir, "solver_config")
     os.makedirs(solver_config_dump, exist_ok=True)
     solver_config_file_path = os.path.join(solver_config_dump, f'{cfg.solver.name}_config.yaml')
 
@@ -597,7 +597,7 @@ def dump_configs(cfg):
         print(f"Solver config saved to {solver_config_file_path}")
 
     # Create directory and dump benchmark config
-    benchmark_config_dump = os.path.join(cfg.root_dir, "benchmark_config")
+    benchmark_config_dump = os.path.join(cfg.configs_output_dir, "benchmark_config")
     os.makedirs(benchmark_config_dump, exist_ok=True)
     benchmark_config_file_path = os.path.join(benchmark_config_dump, f'{cfg.benchmark.name}_config.yaml')
 

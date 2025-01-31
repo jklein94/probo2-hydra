@@ -14,7 +14,7 @@ def validate_solver_results(df: pd.DataFrame, config: DictConfig):
     benchmark_name = df["benchmark_name"].iloc[0]
     task = df["task"].iloc[0]
     solver_name = df["solver_name"].iloc[0]
-    benchmark_config = OmegaConf.load(os.path.join(config.root_dir, "benchmark_config", f"{benchmark_name}_config.yaml"))
+    benchmark_config = OmegaConf.load(os.path.join(config.configs_output_dir, "benchmark_config", f"{benchmark_name}_config.yaml"))
 
     # Validate the solver results against given solutions
     # Check if in the benchmarks config a solutions_path is given

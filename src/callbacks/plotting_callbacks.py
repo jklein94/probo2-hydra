@@ -48,6 +48,7 @@ class CactusPlot(Callback):
         # 3. Load the data
         df = pd.read_csv(result_file)
 
+
         # 4. Column name config (optional)
         runtime_col =  self.runtime_key
         valid_col = "solver_output_valid"
@@ -61,12 +62,6 @@ class CactusPlot(Callback):
         df = df.groupby(["task", "benchmark_name", "solver_name","instance"]).agg(
                 {runtime_col: "mean", valid_col: "all"} # This excludes each instances that are not solved by all runs
             ).reset_index()
-
-
-        print(df[["task", "benchmark_name", "solver_name","instance",runtime_col,valid_col]])
-
-        print(df)
-
         # 5. Filter data for solved instances if you only want successful runs
         df_solved = df[df[valid_col] == True].copy()
         if df_solved.empty:
@@ -123,7 +118,7 @@ class CactusPlot(Callback):
             plt.savefig(plot_path, bbox_inches="tight")
             plt.close()
 
-            print(f"Saved cactus plot for (task={task_val}, benchmark={bench_val}) to '{plot_path}'")
+            print(f"+ Saved cactus plot for (task={task_val}, benchmark={bench_val}) to '{plot_path}'")
 
             # 7d. (Optional) Register this file in the evaluation file index
             # index_file = config.get("evaluation_result_index_file")
