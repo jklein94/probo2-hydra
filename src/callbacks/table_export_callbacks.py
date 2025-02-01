@@ -6,7 +6,8 @@ from pathlib import Path
 import os
 import tabulate
 from src import utils
-
+from rich.console import Console
+console = Console()
 """
 PlainTextTable Callback
 
@@ -57,7 +58,7 @@ class PlainTextTable(Callback):
         5. Groups the DataFrame by the specified grouping and saves each group as a text file.
         6. Iterates through the groups and prints each group along with its keys and the grouping used.
         """
-        print(utils.create_callback_chain(config.hydra.callbacks, 'plain_text'))
+        utils.create_callback_chain(config.hydra.callbacks, 'plain_text')
         os.makedirs(config.tables_output_dir,exist_ok=True)
         # Read the file from config.evaluation_combined_results_file if it exists, otherwise return None
         if config.evaluation_combined_results_file is None:
@@ -81,12 +82,13 @@ class PlainTextTable(Callback):
         save_to = config.tables_output_dir
         grouped_df = df.groupby(self.grouping)
         grouped_df.apply(lambda _df: self._save_as_text(_df, save_to, self.grouping))
+        console.print(f"[bold green]✔ Results aggregated into {save_to}[/bold green]")
 
 
-        # Iterate through groups and print them
-        for group_keys, group_data in grouped_df:
-            print(f"\nGroup: {group_keys}")
-            print(group_data)
+        # # Iterate through groups and print them
+        # for group_keys, group_data in grouped_df:
+        #     print(f"\nGroup: {group_keys}")
+        #     print(group_data)
 
     def _save_as_text(self, df: pd.DataFrame, save_to, grouping, tablefmt='pretty'):
         """

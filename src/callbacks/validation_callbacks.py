@@ -98,7 +98,7 @@ def filter_for_task(df: pd.DataFrame, task: str) -> pd.DataFrame:
 class ValidateSolutionsAccaptanceTasks(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
             # Initialize HydraConfig if not already set
-        print(utils.create_callback_chain(config.hydra.callbacks, 'validate_acceptance_tasks'))
+        utils.create_callback_chain(config.hydra.callbacks, 'validate_acceptance_tasks')
         # Create directory for the validation results
         os.makedirs(config['result_validation_output_dir'], exist_ok=True)
 
@@ -174,6 +174,101 @@ def check_solution_content_acceptance(df: pd.DataFrame, task: str) -> pd.Series:
 
     return pd.Series([False] * len(df), index=df.index)
 
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+
+console = Console()
+
+# def load_reference_solutions(
+#     directory: str,
+#     task: str,
+#     expected_instances=None,
+#     missing_file: str = "missing_instances.txt",
+# ) -> pd.DataFrame:
+#     """
+#     Reads all files in 'directory' that follow the naming convention:
+#         <anything>_<task>.sol
+#     For example, if task="DS-CO", it will match:
+#         BA_23423_234234_DS-CO.sol
+#     The part before "_<task>.sol" is treated as the 'instance' name.
+#     """
+
+#     # Display header panel
+#     console.print(Panel.fit(f"[bold blue]🔍 Loading Reference Solutions[/bold blue]", border_style="blue"))
+
+#     pattern = re.compile(rf"^(.+)_{re.escape(task)}\.sol$")
+#     if expected_instances is None:
+#         expected_instances = set()
+
+#     found_data = []
+#     found_instances = set()
+
+#     # Show directory and pattern being searched
+#     console.print(f"[bold cyan]📂 Searching in:[/bold cyan] {directory}")
+#     console.print(f"[bold cyan]🔎 File pattern:[/bold cyan] '(.+)_{task}.sol'")
+
+#     # Look through the directory
+#     for fname in os.listdir(directory):
+#         match = pattern.match(fname)
+#         if match:
+#             instance_name = match.group(1)
+#             file_path = os.path.join(directory, fname)
+
+#             with open(file_path, "r") as f:
+#                 content = f.read().strip()
+
+#             found_data.append({"instance": instance_name, "solution": content})
+#             found_instances.add(instance_name)
+
+#     # Print results
+#     console.print(f"[bold cyan]✅ Found solutions:[/bold cyan] {len(found_data)}")
+
+#     # Convert results to a DataFrame
+#     df = pd.DataFrame(found_data, columns=["instance", "solution"])
+
+#     # Check solutions are strictly YES or NO
+#     valid_solutions = check_solution_content_acceptance(df, task)
+#     valid_count = valid_solutions.sum()
+
+#     console.print(f"[bold green]✔ Valid solutions:[/bold green] {valid_count} / {len(valid_solutions)}")
+
+#     if not valid_solutions.empty and not valid_solutions.all():
+#         console.print("[bold red]⚠ WARNING:[/bold red] Some solutions are not 'YES' or 'NO':")
+
+#         # Create a table to show invalid entries
+#         invalid_table = Table(show_header=True, header_style="bold red")
+#         invalid_table.add_column("Instance", style="cyan", justify="left")
+#         invalid_table.add_column("Solution", style="red", justify="left")
+
+#         for _, row in df[~valid_solutions].iterrows():
+#             invalid_table.add_row(row["instance"], row["solution"])
+
+#         console.print(invalid_table)
+
+#     # Expected instance count
+#     console.print(f"[bold cyan]📌 Expected instances:[/bold cyan] {len(expected_instances)}")
+
+#     # Identify missing instances
+#     if expected_instances is not None and len(expected_instances) > 0:
+#         expected_set = set(os.path.splitext(os.path.basename(instance))[0] for instance in expected_instances)
+#         missing = sorted(expected_set - found_instances)
+
+#         if missing:
+#             console.print(f"[bold yellow]⚠ Missing instances:[/bold yellow] {len(missing)}")
+
+#             # Write missing instances to file
+#             with open(missing_file, "w") as fp:
+#                 for m in missing:
+#                     fp.write(m + "\n")
+
+#             console.print(f"[bold cyan]📝 Missing instances written to:[/bold cyan] {missing_file}")
+#         else:
+#             console.print("[bold green]✔ No missing instance files.[/bold green]")
+
+#     # Return the DataFrame
+#     return df
 
 def load_reference_solutions(
     directory: str,
@@ -184,70 +279,80 @@ def load_reference_solutions(
     """
     Reads all files in 'directory' that follow the naming convention:
         <anything>_<task>.sol
-    For example, if task="DS-CO", it will match:
-        BA_23423_234234_DS-CO.sol
     The part before "_<task>.sol" is treated as the 'instance' name.
-    Parameters
-    ----------
-    directory : str
-        Path to the directory containing the solution files.
-    task : str
-        The task name used in the file naming convention (<anything>_<task>.sol).
-    expected_instances : list or set, optional
-        A list or set of instance names you expect. If provided, any of these
-        that are not found in the directory will be written out as "missing."
-        If None, we'll simply parse whatever is present in the directory.
-    missing_file : str, optional
-        Filename (or full path) to write the missing instance names.
-    Returns
-    -------
-    pd.DataFrame
-        A DataFrame with columns: [instance, solution].
-        'instance' is derived from the filename, and 'solution' is the file contents.
     """
-    # Regex to match filenames like <anything>_<task>.sol, where <anything> can be any string
-    #   '(.+)' captures everything until '_<task>.sol'
-    print(f"Looking for files in {directory} with pattern '(.+)_{task}.sol'")
+
+    # Header with Monokai-inspired styling
+    #console.print(Panel.fit("[bold magenta]Loading Reference Solutions[/bold magenta]", border_style="bright_magenta"))
+
     pattern = re.compile(rf"^(.+)_{re.escape(task)}\.sol$")
     if expected_instances is None:
         expected_instances = set()
+
     found_data = []
     found_instances = set()
+
+    # Show directory and pattern being searched
+    console.print(f"[bold bright_cyan]Directory:[/bold bright_cyan] [bright_white]{directory}[/bright_white]")
+    console.print(f"[bold bright_cyan]File pattern:[/bold bright_cyan] [bright_white]'(.+)_{task}.sol'[/bright_white]")
+
     # Look through the directory
     for fname in os.listdir(directory):
         match = pattern.match(fname)
         if match:
-            # group(1) = everything before `_<task>.sol`
             instance_name = match.group(1)
             file_path = os.path.join(directory, fname)
+
             with open(file_path, "r") as f:
                 content = f.read().strip()
+
             found_data.append({"instance": instance_name, "solution": content})
             found_instances.add(instance_name)
+
+    # Print results
+    console.print(f"[bold bright_blue]Found solutions:[/bold bright_blue] [bright_white]{len(found_data)}[/bright_white]")
+
     # Convert results to a DataFrame
-    print(f"Found {len(found_data)} solutions.")
     df = pd.DataFrame(found_data, columns=["instance", "solution"])
+
     # Check solutions are strictly YES or NO
     valid_solutions = check_solution_content_acceptance(df, task)
-    print(f"Valid solutions: {valid_solutions.sum()}/{len(valid_solutions)}")
+    valid_count = valid_solutions.sum()
+
+    console.print(f"[bold bright_green]Valid solutions:[/bold bright_green] [bright_white]{valid_count} / {len(valid_solutions)}[/bright_white]")
+
     if not valid_solutions.empty and not valid_solutions.all():
-        invalid = df[~valid_solutions]
-        print("WARNING: Some solutions are not 'YES' or 'NO':")
-        print(invalid)
-        # Or raise an error: raise ValueError("Some solutions are not 'YES' or 'NO'.")
-    # Identify missing instances if we have an expected set
-    print(f"Expected instances: {len(expected_instances)}")
+        console.print("[bold bright_red]WARNING: Some solutions are not 'YES' or 'NO'[/bold bright_red]")
+
+        # Create a table to show invalid entries
+        invalid_table = Table(show_header=True, header_style="bold bright_red")
+        invalid_table.add_column("Instance", style="bright_magenta", justify="left")
+        invalid_table.add_column("Solution", style="bright_red", justify="left")
+
+        for _, row in df[~valid_solutions].iterrows():
+            invalid_table.add_row(row["instance"], row["solution"])
+
+        console.print(invalid_table)
+
+    # Expected instance count
+    console.print(f"[bold bright_yellow]Expected instances:[/bold bright_yellow] [bright_white]{len(expected_instances)}[/bright_white]")
+
+    # Identify missing instances
     if expected_instances is not None and len(expected_instances) > 0:
         expected_set = set(os.path.splitext(os.path.basename(instance))[0] for instance in expected_instances)
         missing = sorted(expected_set - found_instances)
-        if missing is not None and len(missing) > 0:
-            print(
-                f"{len(missing)} expected instance(s) are missing. Writing them to {missing_file}"
-            )
-            #missing_path = os.path.join(directory, missing_file)
+
+        if missing:
+            console.print(f"[bold bright_red]Missing instances:[/bold bright_red] [bright_white]{len(missing)}[/bright_white]")
+
+            # Write missing instances to file
             with open(missing_file, "w") as fp:
                 for m in missing:
                     fp.write(m + "\n")
+
+            console.print(f"[bold bright_cyan]Missing instances written to:[/bold bright_cyan] [bright_white]{missing_file}[/bright_white]")
         else:
-            print("No missing instance files.")
+            console.print("[bold bright_green]No missing instance files.[/bold bright_green]")
+
+    # Return the DataFrame
     return df

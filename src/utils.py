@@ -9,6 +9,11 @@ from omegaconf import DictConfig, OmegaConf
 
 import csv
 import os
+import tabulate
+import pandas as pd
+
+def print_df_by_groups(df: pd.DataFrame, grouping,tablefmt='fancy_grid'):
+    df.groupby(grouping).apply(lambda _df: print(tabulate.tabulate(_df,headers='keys',tablefmt=tablefmt,showindex=False)))
 
 def write_result_to_csv(path, data_dict):
     """
@@ -605,33 +610,190 @@ def dump_configs(cfg):
         OmegaConf.save(config=cfg.benchmark, f=benchmark_config_file_path)
         print(f"Benchmark config saved to {benchmark_config_file_path}")
 
-def create_callback_chain(callback_dict: dict, current_callback: str) -> str:
+# def create_callback_chain(callback_dict: dict, current_callback: str) -> str:
+#     """
+#     Takes a dictionary of callbacks and the name of the 'current' callback,
+#     and returns a visually formatted string of callback names in reverse
+#     order. If the current_callback is found in the dict, its name is
+#     displayed in bold red; otherwise, no highlighting is applied.
+#     """
+#     # 1. Reverse the dictionary keys
+#     reversed_keys = list(callback_dict.keys())[::-1]
+
+#     # 2. Prepare the highlighted names
+#     highlighted_names = []
+#     for key in reversed_keys:
+#         if key == current_callback and key in callback_dict:
+#             # Highlight current callback in bold red
+#             highlighted_names.append(f"\033[1;32m{key}\033[0m")
+#         else:
+#             highlighted_names.append(f"\033[90m{key}\033[0m")
+
+#     # 3. Join them with an arrow
+#     chain_str = " -> ".join(highlighted_names)
+
+#     # 4. Build a visually pleasing output with a header and footer
+#     #    (here using ANSI escape codes for blue + bold lines)
+#     header = "\033[1;34m==================== Evaluation Pipeline ====================\033[0m"
+#     footer = f"\033[1;34m+ Now running \033[1;32m{current_callback}\033[0m \033[0m\n"
+
+#     # 5. Put it all together
+#     formatted_output = f"\n{header}\n{chain_str}\n\n{footer}"
+#     return formatted_output
+
+
+from rich.console import Console
+from rich.text import Text
+from rich.panel import Panel
+
+console = Console()
+
+def create_callback_chain(callback_dict: dict, current_callback: str) -> None:
     """
     Takes a dictionary of callbacks and the name of the 'current' callback,
-    and returns a visually formatted string of callback names in reverse
-    order. If the current_callback is found in the dict, its name is
-    displayed in bold red; otherwise, no highlighting is applied.
+    and prints a visually formatted string of callback names in reverse order,
+    starting with the current callback and including every stage that follows.
+    The current callback is highlighted in bold green, while the subsequent
+    stages are shown in dim text.
     """
-    # 1. Reverse the dictionary keys
+    # Reverse the dictionary keys (assumed to be in the pipeline order)
     reversed_keys = list(callback_dict.keys())[::-1]
 
-    # 2. Prepare the highlighted names
-    highlighted_names = []
-    for key in reversed_keys:
-        if key == current_callback and key in callback_dict:
-            # Highlight current callback in bold red
-            highlighted_names.append(f"\033[1;32m{key}\033[0m")
+    # Ensure that the current callback exists in the list
+    if current_callback not in reversed_keys:
+        raise ValueError(f"Current callback '{current_callback}' not found in callback_dict keys.")
+
+    # Get the index of the current callback in the reversed list
+    index_current_callback = reversed_keys.index(current_callback)
+
+    # Build the chain representation: from the current stage to the end
+    chain_parts = []
+    for i, stage in enumerate(reversed_keys[index_current_callback:]):
+        if i == 0:
+            # Highlight the current stage in bold green
+            chain_parts.append(f"[bold green]{stage}[/bold green]")
         else:
-            highlighted_names.append(f"\033[90m{key}\033[0m")
+            # Subsequent stages are appended with an arrow in dim styling
+            chain_parts.append(f"[dim]→ {stage}[/dim]")
+    chain_str = " ".join(chain_parts)
 
-    # 3. Join them with an arrow
-    chain_str = " -> ".join(highlighted_names)
+    # Create the panel that shows the full evaluation pipeline overview
+    footer_highlighted = Panel.fit(
+        f"[cyan]Evaluation Pipeline: {chain_str}",
+        border_style="dim"
+    )
 
-    # 4. Build a visually pleasing output with a header and footer
-    #    (here using ANSI escape codes for blue + bold lines)
-    header = "\033[1;34m==================== Evaluation Pipeline ====================\033[0m"
-    footer = f"\033[1;34m+ Now running \033[1;32m{current_callback}\033[0m \033[0m\n"
+    # Create an additional footer message (if needed) indicating what's now running
+    footer = f"[bold cyan] + Now running:[/bold cyan] [bold green]{current_callback}[/bold green] "
 
-    # 5. Put it all together
-    formatted_output = f"\n{header}\n{chain_str}\n\n{footer}"
-    return formatted_output
+    # Print the panel and footer to the console
+    console.print("")
+    console.print(footer_highlighted)
+    console.print(footer)
+    console.print("")
+
+
+from rich.text import Text
+# def create_callback_chain(callback_dict: dict, current_callback: str) -> str:
+#     """
+#     Takes a dictionary of callbacks and the name of the 'current' callback,
+#     and returns a visually formatted string of callback names in reverse
+#     order. The current callback is highlighted in bold green.
+#     """
+
+
+#     # Reverse the dictionary keys
+#     reversed_keys = list(callback_dict.keys())[::-1]
+#     index_current_callback = reversed_keys.index(current_callback)
+#     index_next_callback = index_current_callback + 1
+#     # Build the chain representation
+#     # highlighted_names = []
+#     # for key in enumerate(reversed_keys):
+#     #     if key == current_callback and key in callback_dict:
+#     #         highlighted_names.append(f"[bold green]{key}[/bold green]")  # Highlight current
+#     #         highlighted_names.append(f"[dim]{key}[/dim]")  # Dim for others
+
+#     # Join callbacks with arrows
+#     #chain_str = " [bold cyan]→[/bold cyan] ".join(highlighted_names)
+
+#     # Build the header and footer
+#     # header = Panel.fit(
+#     # "[bold blue]Evaluation Pipeline[/bold blue]",
+#     # border_style="blue"
+#     # )
+#     footer_highlighted = Panel.fit(
+#     f"[bold green]{current_callback}[/bold green] [dim]→ {reversed_keys[index_next_callback]}[/dim]",
+#     border_style="green"
+#     )
+#     #footer = f"[bold blue] + Now running:[/bold blue]"
+#     next_callback = f"[dim]→{reversed_keys[index_next_callback]}[/dim]"
+
+#     # Combine everything
+#     #console.print(header)
+#     #console.print(chain_str)
+#     console.print( "[bold green]{Evaluation Pipeline}[/bold green]",end='')
+#     console.print(footer_highlighted,end='')
+#     #console.print(next_callback)
+
+from rich.table import Table
+def print_dataframe_as_rich_table(df: pd.DataFrame, title: str = "DataFrame") -> None:
+    """
+    Prints the given pandas DataFrame as a styled table using the Rich library.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to display.
+        title (str): The title displayed at the top of the table.
+    """
+    # Create a table with a styled title and border
+    table = Table(title=f"[bold cyan]{title}[/bold cyan]", border_style="dim")
+
+    # Add columns to the table. Column headers are styled in bold magenta.
+    for col in df.columns:
+        table.add_column(str(col), style="bold magenta", no_wrap=False)
+
+    # Add each row from the DataFrame to the table
+    for _, row in df.iterrows():
+        # Convert each value in the row to a string for display
+        row_values = [str(value) for value in row]
+        table.add_row(*row_values)
+
+    # Print the table to the console
+    console.print(table)
+
+def print_grouped_dataframe_as_rich_table(
+    df: pd.DataFrame,
+    title: str = "DataFrame",
+    grouping: str = None
+) -> None:
+    """
+    Prints the given pandas DataFrame grouped by a specified column as a styled table using the Rich library.
+    Inserts a dashed separator line between groups.
+    """
+    # Create a table with a styled title and a dim border
+    table = Table(title=f"[bold cyan]{title}[/bold cyan]", border_style="dim")
+
+    # Add columns to the table
+    for col in df.columns:
+        table.add_column(str(col), no_wrap=False)
+
+    # Group the DataFrame by the specified column
+    grouped = df.groupby(grouping)
+
+    # Convert grouped object to a list so we can tell when we're on the last group
+    grouped_list = list(grouped)
+    num_groups = len(grouped_list)
+
+    for i, (group_name, group_df) in enumerate(grouped_list, start=1):
+        # Add the group's rows
+        for _, row in group_df.iterrows():
+            row_values = [str(value) for value in row]
+            table.add_row(*row_values)
+
+        # If this isn't the last group, add a dashed separator row
+        if i < num_groups:
+            # For each column, insert a small string of dashes
+            dash_row = ["-" * 10 for _ in df.columns]
+            table.add_row(*dash_row, style="dim")
+
+    # Print the table
+    console.print(table)

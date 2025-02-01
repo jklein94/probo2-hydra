@@ -9,6 +9,9 @@ from functools import reduce
 from hydra.core.hydra_config import HydraConfig
 
 
+
+
+
 class All(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
         result_file = config['combined_results_file']
@@ -30,7 +33,7 @@ class All(Callback):
 
 class MeanRuntime(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
-        print(utils.create_callback_chain(config.hydra.callbacks, 'mean_runtime'))
+        utils.create_callback_chain(config.hydra.callbacks, 'mean_runtime')
         os.makedirs(config['statistics_output_dir'], exist_ok=True)
 
         result_file = config['combined_results_file']
@@ -47,7 +50,8 @@ class MeanRuntime(Callback):
             mean_user_sys_time=('user_sys_time', 'mean'),
         ).reset_index()
 
-        print(stats)
+       # utils.print_df_by_groups(stats, ['task', 'benchmark_name'])
+        utils.print_grouped_dataframe_as_rich_table(stats,title='Mean Runtime Statistics', grouping=['task', 'benchmark_name'])
 
         # Save the statistics to a csv file
         mean_runtime_result_file = os.path.join(config['statistics_output_dir'], 'mean_runtime.csv')
@@ -59,7 +63,7 @@ class MeanRuntime(Callback):
 
 class Coverage(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
-        print(utils.create_callback_chain(config.hydra.callbacks, 'coverage'))
+        utils.create_callback_chain(config.hydra.callbacks, 'coverage')
         os.makedirs(config['statistics_output_dir'], exist_ok=True)
         result_file = config['combined_results_file']
 
@@ -80,20 +84,27 @@ class Coverage(Callback):
         coverage_result_file = os.path.join(config['statistics_output_dir'], 'coverage.csv')
         stats.to_csv(coverage_result_file)
 
-        print(stats)
+        #utils.print_df_by_groups(stats, ['task', 'benchmark_name'])
+        utils.print_grouped_dataframe_as_rich_table(stats,title='Coverage Statistics', grouping=['task', 'benchmark_name'])
 
         # Write filepath to evaluation file index
         utils.write_evaluation_file_to_index(coverage_result_file, config['evaluation_result_index_file'])
 
+from rich.console import Console
+# from rich.table import Table
+# from rich.panel import Panel
+# from rich.text import Text
+
+console = Console()
 
 class AggreateEvaluationResults(Callback):
     '''This callback is used to aggregate the evaluation results into a single file'''
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
-        print(utils.create_callback_chain(config.hydra.callbacks, 'aggregate_evaluation_results'))
+        utils.create_callback_chain(config.hydra.callbacks, 'aggregate_evaluation_results')
         os.makedirs(config['statistics_output_dir'], exist_ok=True)
         index_file = config['evaluation_result_index_file']
         output_file = config['evaluation_combined_results_file']
-        print(f"Aggregating evaluation results from {index_file} into {output_file}")
+       # print(f"Aggregating evaluation results from {index_file} into {output_file}")
         try:
         # List to store individual dataframes
             dataframes = []
@@ -110,7 +121,7 @@ class AggreateEvaluationResults(Callback):
                         # Read the CSV file
                         df = pd.read_csv(file_path,index_col=0)
                         dataframes.append(df)
-                        print(f"Loaded {file_path}")
+                        #print(f"Loaded {file_path}")
                     except Exception as e:
                         print(f"Error reading {file_path}: {e}")
 
@@ -118,9 +129,12 @@ class AggreateEvaluationResults(Callback):
             if dataframes:
                 # Assuming 'dataframes' is a list of DataFrames and 'key_column' is the column to merge on
                 combined_df = reduce(lambda left, right: pd.merge(left, right, on=['task','benchmark_name','solver_name'], how='inner'), dataframes)
+
+                #utils.print_df_by_groups(combined_df, ['task', 'benchmark_name'])
+                utils.print_grouped_dataframe_as_rich_table(combined_df,title='Aggregated Statistics', grouping=['task', 'benchmark_name'])
                 # Save to the output CSV file
                 combined_df.to_csv(output_file, index=False)
-                print(f"Results aggregated into {output_file}")
+                console.print(f"[bold green]✔ Results aggregated into {output_file}[/bold green]")
             else:
                 print("No dataframes to aggregate.")
 
@@ -149,7 +163,7 @@ class PenalizedAverageRuntime2(Callback):
 
         # 1. Print the callback chain with this callback highlighted
         current_callback_name = "PAR2"
-        print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+        utils.create_callback_chain(config.hydra.callbacks, current_callback_name)
         os.makedirs(config['statistics_output_dir'], exist_ok=True)
 
         # 2. Read the aggregated CSV file that combines all results
@@ -161,8 +175,9 @@ class PenalizedAverageRuntime2(Callback):
         df = pd.read_csv(result_file)
         par_stats = calculate_par_score(df,config.get("timeout", 600),2)
 
-        print(f"Calculated PAR2 score with timeout {config.timeout} statistics:\n")
-        print(par_stats)
+        # print(f"Calculated PAR2 score with timeout {config.timeout} statistics:\n")
+        # utils.print_df_by_groups(par_stats, ['task', 'benchmark_name'])
+        utils.print_grouped_dataframe_as_rich_table(par_stats,title='PAR2 Statistics', grouping=['task', 'benchmark_name'])
 
         # 6. Save the PAR results to a CSV file
         output_dir = config.get("statistics_output_dir", ".")
@@ -196,7 +211,7 @@ class PenalizedAverageRuntime10(Callback):
 
         # 1. Print the callback chain with this callback highlighted
         current_callback_name = "PAR10"
-        print(utils.create_callback_chain(config.hydra.callbacks, current_callback_name))
+        utils.create_callback_chain(config.hydra.callbacks, current_callback_name)
         os.makedirs(config['statistics_output_dir'], exist_ok=True)
 
         # 2. Read the aggregated CSV file that combines all results
@@ -208,8 +223,9 @@ class PenalizedAverageRuntime10(Callback):
         df = pd.read_csv(result_file)
         par_stats = calculate_par_score(df,config.get("timeout", 600),10)
 
-        print(f"Calculated PAR10 score with timeout {config.timeout} statistics:\n")
-        print(par_stats)
+        # print(f"Calculated PAR10 score with timeout {config.timeout} statistics:\n")
+        # utils.print_df_by_groups(par_stats, ['task', 'benchmark_name'])
+        utils.print_grouped_dataframe_as_rich_table(par_stats,title='PAR10 Statistics', grouping=['task', 'benchmark_name'])
 
         # 6. Save the PAR results to a CSV file
         output_dir = config.get("statistics_output_dir", ".")
