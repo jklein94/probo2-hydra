@@ -75,6 +75,14 @@ As you will see, with probo2-run, it is easy to set up an experiment. We only ne
 > 2. The benchmark instances
 > 3. A configuration file
 
+- probo2-run is based on Hydra
+- Hydra is an open-source Python framework that simplifies the development of research and other complex applications. The key feature is the ability to dynamically create a hierarchical configuration by composition and override it through config files and the command line.
+- In Hydra everything is handeled via YAML files
+- The heart of probo2-run is the base config.yaml file see ... for detailed explanation.
+- The first step is to create a solver and benchmark YAML file in the corresponding directories
+
+
+
 You can manually add solvers and benchmarks with the [add-solver](#add-solver) or [add-benchmark](#add-benchmark) command.
 For our first experiment, however, we will use a very convenient functionality, the [fetch](#fetch) command.
 With this command, we can automatically download and install the [ICCMA](http://argumentationcompetition.org/). solvers and benchmarks and add them to probo2. We have to specify which solvers we want to install, which benchmarks we want to load, and where they should be saved. For example, if we want to have the __ICCMA23__ solvers and benchmarks, just run:
