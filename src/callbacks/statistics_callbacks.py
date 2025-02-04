@@ -118,8 +118,8 @@ class Errors(Callback):
         ).reset_index()
 
         # Save the timeouts statistics to a CSV file
-        timeouts_result_file = os.path.join(config['statistics_output_dir'], 'errors.csv')
-        stats.to_csv(timeouts_result_file, index=False)
+        errors_result_file = os.path.join(config['statistics_output_dir'], 'errors.csv')
+        stats.to_csv(errors_result_file, index=False)
 
         # Display the grouped timeouts statistics in a formatted table
         utils.print_grouped_dataframe_as_rich_table(
@@ -129,7 +129,7 @@ class Errors(Callback):
         )
 
         # Register the result file in the evaluation file index
-        utils.write_evaluation_file_to_index(timeouts_result_file, config['evaluation_result_index_file'])
+        utils.write_evaluation_file_to_index(errors_result_file, config['evaluation_result_index_file'])
 class Coverage(Callback):
     def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
         utils.create_callback_chain(config.hydra.callbacks, 'coverage')
@@ -158,6 +158,43 @@ class Coverage(Callback):
 
         # Write filepath to evaluation file index
         utils.write_evaluation_file_to_index(coverage_result_file, config['evaluation_result_index_file'])
+
+class Invalid(Callback):
+    def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        # Add this callback to the chain
+        utils.create_callback_chain(config.hydra.callbacks, 'invalid')
+
+        # Ensure that the statistics output directory exists
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
+        result_file = config['combined_results_file']
+
+        # Check if the combined results file exists
+        if not os.path.exists(result_file):
+            print(f"File {result_file} does not exist")
+            return None
+
+        # Load the combined results into a DataFrame
+        df = pd.read_csv(result_file)
+
+        # Group by task, benchmark, and solver; count the number of True entries in 'timed_out'
+        stats = df.groupby(['task', 'benchmark_name', 'solver_name']).agg(
+            invalid=('solver_output_valid', lambda x: x.sum())
+        ).reset_index()
+
+        # Save the timeouts statistics to a CSV file
+        invalid_result_file = os.path.join(config['statistics_output_dir'], 'invalid.csv')
+        stats.to_csv(invalid_result_file, index=False)
+
+        # Display the grouped timeouts statistics in a formatted table
+        utils.print_grouped_dataframe_as_rich_table(
+            stats,
+            title='Invalid Statistics',
+            grouping=['task', 'benchmark_name']
+        )
+
+        # Register the result file in the evaluation file index
+        utils.write_evaluation_file_to_index(invalid_result_file, config['evaluation_result_index_file'])
+
 
 from rich.console import Console
 # from rich.table import Table

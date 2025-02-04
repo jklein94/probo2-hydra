@@ -88,6 +88,7 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
     try:
         # Start the process with a new process group
         start_perf_time = time.perf_counter()  # Measure time with perfcounter
+
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -95,7 +96,6 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
             text=True,
             preexec_fn=os.setsid,  # Start in a new process group (Linux/macOS)
         )
-
         # Wait for the process to complete or timeout
         stdout, stderr = process.communicate(timeout=timeout)
         end_perf_time = time.perf_counter()
@@ -118,6 +118,10 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
                 result["user_sys_time"] = user_sys_time
             except Exception as e:
                 print("Failed to parse time output:", e)
+                result["exit_with_error"] = True
+                result["error_code"] = e
+                result["user_sys_time"] = timeout
+                result["perfcounter_time"] = timeout
 
         # Write solver output to file
         with open(output_file, "w") as file:
