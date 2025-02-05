@@ -86,7 +86,7 @@ def clean_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     df["exit_with_error"] = df["exit_with_error"].astype(bool)
     df["timed_out"] = df["timed_out"].astype(bool)
-    df_clean = df[(df["exit_with_error"] == False) & (df["timed_out"] == False)]
+    df_clean = df[(df["exit_with_error"] == False) & (df["timed_out"] == False) & (df["solver_output_valid"] == True) ]
     return df_clean
 
 def filter_for_task(df: pd.DataFrame, task: str) -> pd.DataFrame:

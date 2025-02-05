@@ -133,6 +133,9 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
         result["exit_with_error"] = process.returncode != 0
         result["error_code"] = process.returncode if process.returncode != 0 else None
 
+        # TODO: Set timeout when solver does not return 0 as return value
+
+
     except subprocess.TimeoutExpired:
         result["timed_out"] = True
         result["user_sys_time"] = timeout

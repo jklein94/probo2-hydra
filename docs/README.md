@@ -75,11 +75,13 @@ As you will see, with probo2-run, it is easy to set up an experiment. We only ne
 > 2. The benchmark instances
 > 3. A configuration file
 
+After the installation of the solvers and
 - probo2-run is based on Hydra
 - Hydra is an open-source Python framework that simplifies the development of research and other complex applications. The key feature is the ability to dynamically create a hierarchical configuration by composition and override it through config files and the command line.
 - In Hydra everything is handeled via YAML files
 - The heart of probo2-run is the base config.yaml file see ... for detailed explanation.
 - The first step is to create a solver and benchmark YAML file in the corresponding directories
+
 
 
 
