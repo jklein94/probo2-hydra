@@ -11,6 +11,7 @@ import csv
 import os
 import tabulate
 import pandas as pd
+import psutil
 
 def print_df_by_groups(df: pd.DataFrame, grouping,tablefmt='fancy_grid'):
     df.groupby(grouping).apply(lambda _df: print(tabulate.tabulate(_df,headers='keys',tablefmt=tablefmt,showindex=False)))
@@ -133,13 +134,28 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
         result["error_code"] = process.returncode if process.returncode != 0 else None
 
     except subprocess.TimeoutExpired:
-        # Timeout case: kill the process group
-        os.killpg(
-            os.getpgid(process.pid), signal.SIGTERM
-        )  # Terminate the process group
         result["timed_out"] = True
         result["user_sys_time"] = timeout
         result["perfcounter_time"] = timeout
+        try:
+            # Use psutil to get the parent process and all its children (recursively)
+            parent = psutil.Process(process.pid)
+            children = parent.children(recursive=True)
+            # Kill each child process
+            for child in children:
+                child.kill()
+            # Optionally wait for the child processes to terminate
+            psutil.wait_procs(children, timeout=5)
+        except Exception as e:
+            # Log or handle the exception if needed
+            print(f"Error killing child processes: {e}")
+
+        try:
+            # Kill the process group to ensure the main process is terminated
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        except Exception as e:
+            # Log or handle if process group killing fails
+            print(f"Error killing process group: {e}")
 
     except Exception as e:
         result["exit_with_error"] = True
