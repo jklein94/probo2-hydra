@@ -178,7 +178,7 @@ class Invalid(Callback):
 
         # Group by task, benchmark, and solver; count the number of True entries in 'timed_out'
         stats = df.groupby(['task', 'benchmark_name', 'solver_name']).agg(
-            invalid=('solver_output_valid', lambda x: x.sum())
+            invalid=('solver_output_valid', lambda x: (~x).sum())
         ).reset_index()
 
         # Save the timeouts statistics to a CSV file
