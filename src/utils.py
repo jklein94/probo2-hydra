@@ -194,10 +194,10 @@ def get_solver_output_file_name(cfg: DictConfig) -> str:
              the file name will include the arguments and their values from the configuration.
              Otherwise, it defaults to 'results.csv'.
     """
-    if 'parameters' in cfg.solver:
+    if 'argument' in cfg.solver:
         # Check if the arguments are present in the experiment sweep params
         result_file_name = 'results'
-        for param in cfg.solver.parameters:
+        for param in cfg.solver.argument:
             if param in cfg:
                 result_file_name += f"_{param}_{cfg[param]}"
         result_file_name += '.csv'
