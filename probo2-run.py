@@ -121,7 +121,7 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
                                                 f"{instance_name}.out")
 
         result = utils.run_solver_with_timeout(
-            final_solver_interface_command, cfg.timeout, current_output_file_path
+            final_solver_interface_command, cfg.timeout, current_output_file_path,solver_path=cfg.solver.path
         )
 
         # Validate solver output
@@ -219,7 +219,7 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
                                                 f"{instance_name}.out")
 
         result = utils.run_solver_with_timeout(
-            solver_interface_command, cfg.timeout, current_output_file_path
+            solver_interface_command, cfg.timeout, current_output_file_path, solver_path=cfg.solver.path
         )
 
         # Validate solver output

@@ -73,7 +73,14 @@ def get_index_mutable_interface_options(options: list) -> dict:
     return option_to_index_map
 
 
-def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
+def run_solver_with_timeout(command, timeout, output_file, time_flag=True,solver_path=None):
+
+    if solver_path is None:
+        solver_path = os.getcwd()
+    else:
+        # get parent of solver executable
+        solver_path = os.path.dirname(solver_path)
+
     if time_flag:
         command = ["time", "-p"] + command  # Use `-p` for a more parsable format
 
@@ -96,6 +103,7 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True):
             stderr=subprocess.PIPE,
             text=True,
             preexec_fn=os.setsid,  # Start in a new process group (Linux/macOS)
+            cwd=solver_path
         )
         # Wait for the process to complete or timeout
         stdout, stderr = process.communicate(timeout=timeout)
