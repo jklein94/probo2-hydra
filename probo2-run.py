@@ -114,12 +114,14 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
         solver_interface_command[index_option_to_change] = instance
         instance_name = Path(instance).stem
         query_arg_command = ['-a', instance_to_query_arg_mapping[instance_name]]
-        solver_interface_command.extend(query_arg_command)
+
+        final_solver_interface_command = solver_interface_command + query_arg_command
+        #solver_interface_command.extend(query_arg_command)
         current_output_file_path = os.path.join(output_root_dir,
                                                 f"{instance_name}.out")
 
         result = utils.run_solver_with_timeout(
-            solver_interface_command, cfg.timeout, current_output_file_path
+            final_solver_interface_command, cfg.timeout, current_output_file_path
         )
 
         # Validate solver output
