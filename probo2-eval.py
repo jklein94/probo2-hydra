@@ -18,11 +18,12 @@ import tqdm
 
 
 @hydra.main(
-    version_base=None, config_path="configs", config_name="config"
+    version_base=None, config_path="configs", config_name="reevaluate"
 )
 def run_evaluation_pipeline(cfg: DictConfig) -> None:
     # Generate custom directories
-    pass
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Start running pipeline")
 
 
 

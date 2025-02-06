@@ -1,0 +1,29 @@
+defaults:
+  - _self_
+  - callbacks:
+    - tables/plain_text
+    - stats/aggregate_results
+    - stats/invalid
+    - stats/timeouts
+    - stats/errors
+    - stats/par_2
+    - stats/par_10
+    - stats/coverage
+    - stats/mean_runtime
+
+
+# Specify the timeout which was used in the original experiment
+timeout: ???
+# Here the root directory of the original experiment is specified
+root_dir: ???
+combined_results_file: ${root_dir}/combined_results.csv
+result_index_file:  ${root_dir}/result_file_index.txt
+
+evaluation_output_dir: ${root_dir}/evaluation
+statistics_output_dir: ${evaluation_output_dir}/statistics
+tables_output_dir: ${evaluation_output_dir}/tables
+evaluation_result_index_file: ${evaluation_output_dir}/evaluation_result_file_index.txt
+evaluation_combined_results_file: ${evaluation_output_dir}/evaluation_combined_results.csv
+
+result_validation_output_dir: ${root_dir}/validation
+result_validation_combined_results_file: ${result_validation_output_dir}/result_validation_combined_results.csv
