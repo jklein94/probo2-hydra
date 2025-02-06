@@ -381,6 +381,22 @@ def generate_instance_to_query_arg_mapping(instances: List[str], query_argument_
     query_arg_names = {strip_extension(os.path.basename(path), extension): path for path in query_argument_instances}
 
     if set(instance_names.keys()) != set(query_arg_names.keys()):
+            # Compute mismatched subsets
+        instance_only = set(instance_names.keys()) - set(query_arg_names.keys())
+        query_only = set(query_arg_names.keys()) - set(instance_names.keys())
+
+        # Print instance files that do not match any query arguments
+        if instance_only:
+            print("Instance files not found in query arguments:")
+            for key in instance_only:
+                print(f"  - {key}")
+
+        # Print query arguments that do not match any instance files
+        if query_only:
+            print("Query arguments not found in instance files:")
+            for key in query_only:
+                print(f"  - {key}")
+
         raise ValueError("Mismatch between instance files and query argument files.")
 
     mapping = {}
