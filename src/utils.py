@@ -169,6 +169,8 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True,solver
             print(f"Error killing process group: {e}")
 
     except Exception as e:
+        with open(output_file, "w") as file:
+            file.write(str(e))
         result["exit_with_error"] = True
         result["error_code"] = e
         result["user_sys_time"] = timeout
