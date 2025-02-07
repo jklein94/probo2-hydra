@@ -231,6 +231,19 @@ def generate_solver_info(cfg: DictConfig ) -> dict:
     return add_prefix_to_dict_keys(solver_info,'solver_')
 
 
+def get_instances_subset(instances: List, cfg: DictConfig) -> List:
+    # Check if cfg.run_subset is a integer:
+    if isinstance(cfg.run_subset, int):
+        console.print(f"[yellow]Note: Experiment {cfg.name} is executed with a subset of the first {cfg.run_subset} instances of {cfg.benchmark.name} [/yellow]")
+        instances = instances[:cfg.run_subset]
+    # Check if run_subset a path
+    elif os.path.isfile(cfg.run_subset):
+        with open(cfg.run_subset, 'r') as file:
+            subset_instances = file.read().splitlines()
+        instances = [instance for instance in instances if Path(instance).stem in subset_instances]
+        console.print(f"[yellow]Note: Experiment {cfg.name} is executed with a subset of instances of benchmark {cfg.benchmark.name} from the file {cfg.run_subset}[/yellow]")
+
+    return instances
 
 
 def write_result_file_to_index(filepath, index_file="result_file_index.txt"):

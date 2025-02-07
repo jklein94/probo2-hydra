@@ -37,7 +37,7 @@ runs: 1
 name: MyExperiment
 check_solver_output: True # Check if the solver output follows the expected format of the corresponding interface and task
 update_solver_output_valid_flag: True # If true the "solver_output_valid" flag in combined_results.csv will be updated with the validation results
-
+run_subset: False # Option to run just a subset of the Benchmark, if a integer n, run the n first instanes; if a path, run all (unique) instances in the file
 
 hydra:
   sweep:
