@@ -117,8 +117,18 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
 
         final_solver_interface_command = solver_interface_command + query_arg_command
         #solver_interface_command.extend(query_arg_command)
+        output_file_name = f'{instance_name}.out'
+        #Check if current_output_file_path exists
+        if os.path.exists(os.path.join(output_root_dir,output_file_name)):
+            #Check if we run a solver with paramters
+            if 'argument' in cfg.solver:
+            # Check if the arguments are present in the experiment sweep params
+                for param in cfg.solver.argument:
+                    if param in cfg:
+                        output_file_name += f"_{param}_{cfg[param]}"
+
         current_output_file_path = os.path.join(output_root_dir,
-                                                f"{instance_name}.out")
+                                                output_file_name)
 
         result = utils.run_solver_with_timeout(
             final_solver_interface_command, cfg.timeout, current_output_file_path,solver_path=cfg.solver.path
@@ -217,6 +227,8 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
         instance_name = Path(instance).stem
         current_output_file_path = os.path.join(output_root_dir,
                                                 f"{instance_name}.out")
+
+        #check if the current_output_file_path already exists
 
         result = utils.run_solver_with_timeout(
             solver_interface_command, cfg.timeout, current_output_file_path, solver_path=cfg.solver.path

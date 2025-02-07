@@ -222,9 +222,9 @@ def add_prefix_to_dict_keys(original_dict, prefix):
 
 def generate_solver_info(cfg: DictConfig ) -> dict:
     solver_info = cfg.solver.copy()
-    if 'parameters' in cfg.solver:
+    if 'argument' in cfg.solver:
         # Check if the arguments are present in the experiment sweep params
-        for param in cfg.solver.parameters:
+        for param in cfg.solver.argument:
             if param in cfg:
                 solver_info['name'] += f"_{param}_{cfg[param]}"
 

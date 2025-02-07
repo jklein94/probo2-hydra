@@ -195,6 +195,49 @@ class Invalid(Callback):
         # Register the result file in the evaluation file index
         utils.write_evaluation_file_to_index(invalid_result_file, config['evaluation_result_index_file'])
 
+class Solved(Callback):
+    def on_multirun_end(self, config: DictConfig, **kwargs: Any) -> None:
+        # Add this callback to the chain
+        utils.create_callback_chain(config.hydra.callbacks, 'solved')
+
+        # Ensure that the statistics output directory exists
+        os.makedirs(config['statistics_output_dir'], exist_ok=True)
+        result_file = config['combined_results_file']
+
+        # Check if the combined results file exists
+        if not os.path.exists(result_file):
+            print(f"File {result_file} does not exist")
+            return
+
+        # Load the combined results into a DataFrame
+        df = pd.read_csv(result_file)
+
+        # Calculate a boolean mask for solved instances:
+        # - timed_out is False
+        # - exit_with_error is False
+        # - solver_output_valid is True
+        solved_mask = (~df['timed_out']) & (~df['exit_with_error']) & (df['solver_output_valid'])
+        # Create a new column 'solved' (1 if solved, 0 otherwise)
+        df['solved'] = solved_mask.astype(int)
+
+        # Group by task, benchmark, and solver; count the number of solved instances
+        stats = df.groupby(['task', 'benchmark_name', 'solver_name']).agg(
+            solved=('solved', 'sum')
+        ).reset_index()
+
+        # Save the solved statistics to a CSV file
+        solved_result_file = os.path.join(config['statistics_output_dir'], 'solved.csv')
+        stats.to_csv(solved_result_file, index=False)
+
+        # Display the grouped solved statistics in a formatted table
+        utils.print_grouped_dataframe_as_rich_table(
+            stats,
+            title='Solved Statistics',
+            grouping=['task', 'benchmark_name']
+        )
+
+        # Register the result file in the evaluation file index
+        utils.write_evaluation_file_to_index(solved_result_file, config['evaluation_result_index_file'])
 
 from rich.console import Console
 # from rich.table import Table

@@ -31,7 +31,7 @@ def get_iccma23_interface_call_static(config: DictConfig):
         for argument in config.solver.argument:
             #print(f'Argument: {argument=} {config[argument]=}')
             if argument in config:
-                cmd_params.extend([argument, config[argument]])
+                cmd_params.extend([f'-{argument}', str(config[argument])])
 
     return cmd_params
 
@@ -54,7 +54,7 @@ def get_legacy_interface_static(config: DictConfig):
         # Check if the arguments are present in the experiment sweep params
         for argument in config.solver.argument:
             if argument in config:
-                cmd_params.extend([argument, config[argument]])
+                cmd_params.extend([f'-{argument}', str(config[argument])])
 
     return cmd_params
 
