@@ -3,3 +3,4 @@ hydra:
   callbacks:
     invalid:
       _target_: src.callbacks.statistics_callbacks.Invalid
+      dump_files: True

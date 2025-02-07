@@ -15,15 +15,15 @@ import os
 import tqdm
 
 
-
-
-def run_solver_dynamic_accaptance(cfg:DictConfig) -> None:
-    pass
-def run_solver_dynamic_enumeration(cfg:DictConfig) -> None:
+def run_solver_dynamic_accaptance(cfg: DictConfig) -> None:
     pass
 
 
-def run_solver_static_accaptance(cfg:DictConfig) -> None:
+def run_solver_dynamic_enumeration(cfg: DictConfig) -> None:
+    pass
+
+
+def run_solver_static_accaptance(cfg: DictConfig) -> None:
     """
     Runs a solver with static acceptance criteria based on the provided configuration.
 
@@ -55,12 +55,9 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
     run_dir = hydra_config.runtime.output_dir
     output_root_dir = os.path.join(run_dir, hydra_config.output_subdir)
 
-
     utils.dump_configs(cfg)
 
-    matching_format = utils.get_matching_format(
-        cfg.solver.format, cfg.benchmark.format
-    )
+    matching_format = utils.get_matching_format(cfg.solver.format, cfg.benchmark.format)
 
     if matching_format is None:
         print(
@@ -68,22 +65,21 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
         )
         return None
 
-    instances = utils.get_files_with_extension(
-        cfg.benchmark.path, matching_format
-    )
-
-
+    instances = utils.get_files_with_extension(cfg.benchmark.path, matching_format)
 
     query_argument_instances = utils.get_files_with_extension(
-            cfg.benchmark.path, cfg.benchmark.query_arg_format
-        )
-
+        cfg.benchmark.path, cfg.benchmark.query_arg_format
+    )
 
     # Generate mapping from the instances name (without extension) to the query argument
     # Save mapping to file if not present
-    mapping_file_path = os.path.join(run_dir,f'{cfg.benchmark.name}_query_arg_mapping.yaml')
+    mapping_file_path = os.path.join(
+        run_dir, f"{cfg.benchmark.name}_query_arg_mapping.yaml"
+    )
 
-    utils.save_instance_to_query_arg_mapping(instances,query_argument_instances,cfg,mapping_file_path)
+    utils.save_instance_to_query_arg_mapping(
+        instances, query_argument_instances, cfg, mapping_file_path
+    )
     # Load mapping file
     instance_to_query_arg_mapping = OmegaConf.load(mapping_file_path)
 
@@ -104,39 +100,41 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
     # Check if the solver is run with additional paramters, if so, append them to the result file name
     solver_output_file_name = utils.get_solver_output_file_name(cfg)
 
-    result_file_path = os.path.join(output_root_dir,solver_output_file_name)
+    result_file_path = os.path.join(output_root_dir, solver_output_file_name)
 
-    utils.write_result_file_to_index(result_file_path,index_file=cfg.result_index_file)
+    utils.write_result_file_to_index(result_file_path, index_file=cfg.result_index_file)
 
     for instance in tqdm.tqdm(instances, desc=desc):
 
         # Set instance
         solver_interface_command[index_option_to_change] = instance
         instance_name = Path(instance).stem
-        query_arg_command = ['-a', instance_to_query_arg_mapping[instance_name]]
+        query_arg_command = ["-a", instance_to_query_arg_mapping[instance_name]]
 
         final_solver_interface_command = solver_interface_command + query_arg_command
-        #solver_interface_command.extend(query_arg_command)
-        output_file_name = f'{instance_name}.out'
-        #Check if current_output_file_path exists
-        if os.path.exists(os.path.join(output_root_dir,output_file_name)):
-            #Check if we run a solver with paramters
-            if 'argument' in cfg.solver:
-            # Check if the arguments are present in the experiment sweep params
+        # solver_interface_command.extend(query_arg_command)
+        output_file_name = f"{instance_name}.out"
+        # Check if current_output_file_path exists
+        if os.path.exists(os.path.join(output_root_dir, output_file_name)):
+            # Check if we run a solver with paramters
+            if "argument" in cfg.solver:
+                # Check if the arguments are present in the experiment sweep params
                 for param in cfg.solver.argument:
                     if param in cfg:
                         output_file_name += f"_{param}_{cfg[param]}"
 
-        current_output_file_path = os.path.join(output_root_dir,
-                                                output_file_name)
+        current_output_file_path = os.path.join(output_root_dir, output_file_name)
 
         result = utils.run_solver_with_timeout(
-            final_solver_interface_command, cfg.timeout, current_output_file_path,solver_path=cfg.solver.path
+            final_solver_interface_command,
+            cfg.timeout,
+            current_output_file_path,
+            solver_path=cfg.solver.path,
         )
 
         # Validate solver output
-        is_output_valid = utils.validate_solver_output_accaptance_task(cfg,result)
-        result.update({'solver_output_valid': is_output_valid})
+        is_output_valid = utils.validate_solver_output_accaptance_task(cfg, result)
+        result.update({"solver_output_valid": is_output_valid})
 
         # Update the runtimes of the solver to the timeout value if the output is invalid
         if not is_output_valid:
@@ -147,13 +145,23 @@ def run_solver_static_accaptance(cfg:DictConfig) -> None:
         prefixed_solver_info = utils.generate_solver_info(cfg)
 
         # prefixed_benchmark_info
-        prefixed_benchmark_info = utils.add_prefix_to_dict_keys(cfg.benchmark,'benchmark_')
+        prefixed_benchmark_info = utils.add_prefix_to_dict_keys(
+            cfg.benchmark, "benchmark_"
+        )
         result.update(prefixed_solver_info)
         result.update(prefixed_benchmark_info)
-        result.update({'experiment_name': cfg.name,'run': cfg.runs,'task': cfg.task,'timeout': cfg.timeout, 'instance': instance})
+        result.update(
+            {
+                "experiment_name": cfg.name,
+                "run": cfg.runs,
+                "task": cfg.task,
+                "timeout": cfg.timeout,
+                "instance": instance,
+            }
+        )
 
         # Write results to file
-        utils.write_result_to_csv(data_dict=result,path=result_file_path)
+        utils.write_result_to_csv(data_dict=result, path=result_file_path)
 
 
 # Method to run static enumeration task such as SE or EE
@@ -178,9 +186,7 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
 
     utils.dump_configs(cfg)
 
-    matching_format = utils.get_matching_format(
-        cfg.solver.format, cfg.benchmark.format
-    )
+    matching_format = utils.get_matching_format(cfg.solver.format, cfg.benchmark.format)
 
     if matching_format is None:
         print(
@@ -188,9 +194,7 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
         )
         exit()
 
-    instances = utils.get_files_with_extension(
-        cfg.benchmark.path, matching_format
-    )
+    instances = utils.get_files_with_extension(cfg.benchmark.path, matching_format)
 
     solver_interface_command = solver_interfaces.interfaces_dict[cfg.solver.interface](
         cfg
@@ -212,31 +216,32 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
     run_dir = hydra_config.runtime.output_dir
     output_root_dir = os.path.join(run_dir, hydra_config.output_subdir)
 
-
     # Check if the solver is run with additional paramters, if so, append them to the result file name
     solver_output_file_name = utils.get_solver_output_file_name(cfg)
 
-    result_file_path = os.path.join(output_root_dir,solver_output_file_name)
+    result_file_path = os.path.join(output_root_dir, solver_output_file_name)
 
-    utils.write_result_file_to_index(result_file_path,index_file=cfg.result_index_file)
+    utils.write_result_file_to_index(result_file_path, index_file=cfg.result_index_file)
 
     for instance in tqdm.tqdm(instances, desc=desc):
 
         # Set instance
         solver_interface_command[index_option_to_change] = instance
         instance_name = Path(instance).stem
-        current_output_file_path = os.path.join(output_root_dir,
-                                                f"{instance_name}.out")
+        current_output_file_path = os.path.join(output_root_dir, f"{instance_name}.out")
 
-        #check if the current_output_file_path already exists
+        # check if the current_output_file_path already exists
 
         result = utils.run_solver_with_timeout(
-            solver_interface_command, cfg.timeout, current_output_file_path, solver_path=cfg.solver.path
+            solver_interface_command,
+            cfg.timeout,
+            current_output_file_path,
+            solver_path=cfg.solver.path,
         )
 
         # Validate solver output
-        is_output_valid = utils.validate_solver_output_enumeration_task(cfg,result)
-        result.update({'solver_output_valid': is_output_valid})
+        is_output_valid = utils.validate_solver_output_enumeration_task(cfg, result)
+        result.update({"solver_output_valid": is_output_valid})
 
         # Update the runtimes of the solver to the timeout value if the output is invalid
         if not is_output_valid:
@@ -247,20 +252,26 @@ def run_solver_static_enumeration(cfg: DictConfig) -> None:
         prefixed_solver_info = utils.generate_solver_info(cfg)
 
         # prefixed_benchmark_info
-        prefixed_benchmark_info = utils.add_prefix_to_dict_keys(cfg.benchmark,'benchmark_')
+        prefixed_benchmark_info = utils.add_prefix_to_dict_keys(
+            cfg.benchmark, "benchmark_"
+        )
         result.update(prefixed_solver_info)
         result.update(prefixed_benchmark_info)
-        result.update({'experiment_name': cfg.name,'run': cfg.runs,'task': cfg.task,'timeout': cfg.timeout, 'instance': instance})
+        result.update(
+            {
+                "experiment_name": cfg.name,
+                "run": cfg.runs,
+                "task": cfg.task,
+                "timeout": cfg.timeout,
+                "instance": instance,
+            }
+        )
 
         # Write results to file
-        utils.write_result_to_csv(data_dict=result,path=result_file_path)
+        utils.write_result_to_csv(data_dict=result, path=result_file_path)
 
 
-
-
-@hydra.main(
-    version_base=None, config_path="configs", config_name="config"
-)
+@hydra.main(version_base=None, config_path="configs", config_name="config")
 def run_experiment(cfg: DictConfig) -> None:
     # Generate custom directories
     os.makedirs(cfg.evaluation_output_dir, exist_ok=True)
@@ -271,7 +282,6 @@ def run_experiment(cfg: DictConfig) -> None:
 
     if cfg.config_validation.validate_config:
         # check if the root directory
-
 
         config_valid = config_validater.validate_config(cfg)
         if not config_valid:
@@ -288,7 +298,6 @@ def run_experiment(cfg: DictConfig) -> None:
     # Check if the cfg.task string contains the prefix DC or DS
     elif cfg.task.startswith("DC") or cfg.task.startswith("DS"):
         run_solver_static_accaptance(cfg)
-
 
 
 if __name__ == "__main__":

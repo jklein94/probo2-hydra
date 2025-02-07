@@ -3,3 +3,4 @@ hydra:
   callbacks:
     errors:
       _target_: src.callbacks.statistics_callbacks.Errors
+      dump_files: True
