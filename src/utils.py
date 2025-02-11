@@ -143,7 +143,6 @@ def run_solver_with_timeout(command, timeout, output_file, time_flag=True,solver
 
         # TODO: Set timeout when solver does not return 0 as return value
 
-
     except subprocess.TimeoutExpired:
         result["timed_out"] = True
         result["user_sys_time"] = timeout
